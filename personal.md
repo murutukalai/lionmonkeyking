@@ -1,3 +1,4 @@
+```sql
 INSERT INTO blog_post (title, content, create_by, slug, status, seo_title, seo_keywords, seo_description, published_on) VALUES
     ('Introduction to SQL', 'SQL is a powerful language for managing relational databases.', 'Suriya', 'introduction-to-sql', 'P', 'SQL Basics', 'database, SQL, relational', 'Learn the basics of SQL programming.', '2024-01-01'),
     ('Web Development Trends', 'Explore the latest trends in web development and stay updated.', 'Askara', 'web-development-trends', 'P', 'Latest Web Dev Trends', 'web development, trends, programming', 'Stay informed about the latest trends in web development.', '2024-01-05'),
@@ -45,3 +46,16 @@ INSERT INTO blog_analytic (post_id, tag_id, no_visits, no_hits) VALUES
     (8, 8, 800, 1500),
     (9, 9, 250, 500),
     (10, 10, 700, 1300);
+```
+
+```sql
+-- Example search query based on tags, keywords, and status, sorted by date
+SELECT *
+FROM blog_post
+WHERE
+    (tags @> '["tag1"]' OR tags @> '["tag2"]') -- Replace with your actual tag condition
+    AND (keywords @> '["keyword1"]' OR keywords @> '["keyword2"]') -- Replace with your actual keyword condition
+    AND status = 'published' -- Replace with your actual status condition
+ORDER BY published_on DESC;
+
+```
