@@ -246,8 +246,13 @@ pub async fn create(
 
         // Check tag already exist
         if count.is_empty() {
-            blog_tag::create(db, ele).await?;
-        } else if let Some(tag_id) = count.get(0) {
+            let tag_id = blog_tag::create(db, ele).await?;
+            db.query(
+                "UPDATE blog_tag SET no_posts = no_posts + 1 WHERE id = $1",
+                &[&tag_id],
+            )
+            .await?;
+        } else if let Some(tag_id) = count.first() {
             db.query(
                 "UPDATE blog_tag SET no_posts = no_posts + 1 WHERE id = $1",
                 &[&tag_id.get::<_, i64>("id")],
@@ -279,7 +284,7 @@ pub async fn create(
     ];
 
     let rows = db.query(&query, &params).await?;
-    let Some(row) = rows.get(0) else {
+    let Some(row) = rows.first() else {
         return Err(ApiError::Error("Unable to create new post".to_string()));
     };
 
@@ -316,7 +321,11 @@ pub struct BlogPostUpdateInput {
     tags: Option<Vec<String>>,
 }
 
-pub fn update_by_id(db: &DBConnection<'_>, id: &i64, input: &BlogPostUpdateInput) ->Result<bool, ApiError> {
+pub fn update_by_id(
+    db: &DBConnection<'_>,
+    id: &i64,
+    input: &BlogPostUpdateInput,
+) -> Result<bool, ApiError> {
     if input.validate_args(&STATUS_LIST.to_vec()).is_err() {
         return Err(ApiError::Error("Invalid data".to_string()));
     }
@@ -327,5 +336,4 @@ pub fn update_by_id(db: &DBConnection<'_>, id: &i64, input: &BlogPostUpdateInput
 // Delete by id
 
 pub async fn delete_by_id() {}
-
 ```
