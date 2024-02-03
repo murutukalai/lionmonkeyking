@@ -10,4 +10,17 @@
   </body>
 </html>
 
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Redirect Example</title>
+</head>
+<body>
+    <form action="https://www.example.com" method="get">
+        <button type="submit">Click me to redirect</button>
+    </form>
+</body>
+</html>
+
 ```
