@@ -1,4 +1,7 @@
 links 
-https://docs.rs/stpl/latest/stpl/
-https://github.com/dpc/stpl
-https://www.semrush.com/blog/url-parameters/
+https://docs.rs/stpl/latest/stpl/   </br>
+https://github.com/dpc/stpl    </br>
+https://www.semrush.com/blog/url-parameters/    </br>
+https://htmx.org/    </br>
+    </br>
+    </br>
