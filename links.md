@@ -9,3 +9,6 @@ https://github.com/brooks-builds/exploring_axum_multipart    </br>
 
 Channel -> https://www.youtube.com/@BrooksBuilds    </br>
 multipart video -> https://www.youtube.com/watch?v=yDwuDZ9mCwo    </br>
+
+
+axum  tut -> https://youtube.com/playlist?list=PLGOIZXklfFkQMX9OJLqpU9MDkIU0ueunW&si=blOJUHUtDXEq21Ms </br>
