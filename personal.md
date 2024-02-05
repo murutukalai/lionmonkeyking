@@ -114,3 +114,17 @@ async fn home_handler() -> Html<String> {
 }
 
 ```
+
+
+### Remove file
+
+```rust
+#![allow(unused)]
+use std::fs;
+
+fn main() -> std::io::Result<()> {
+    fs::remove_file("a.txt")?;
+    Ok(())
+}
+
+```
