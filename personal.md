@@ -1,150 +1,241 @@
+```sql
+INSERT INTO requirement (project_id, requirement, description, status, progress) VALUES
+    (1, 'Req 1 for Project 1', 'Description for Req 1', 'new', 25),
+    (1, 'Req 2 for Project 1', 'Description for Req 2', 'In Progress', 50),
+    (2, 'Req 1 for Project 2', 'Description for Req 1', 'Completed', 100),
+    (2, 'Req 2 for Project 2', 'Description for Req 2', 'new', 10),
+    (3, 'Req 1 for Project 3', 'Description for Req 1', 'In Progress', 75),
+    (3, 'Req 2 for Project 3', 'Description for Req 2', 'Open', 30),
+    (4, 'Req 1 for Project 4', 'Description for Req 1', 'Completed', 100),
+    (4, 'Req 2 for Project 4', 'Description for Req 2', 'In Progress', 60);
+```
+api projects
 ```rust
-use std::{fs::File, io::Write};
-use tracing::{info, Level};
+use crate::db::DBManager;
 
-use axum::{
-    extract::{DefaultBodyLimit, Multipart}, http::StatusCode, response::{Html, Redirect}, routing::{get, post}, Router
+use super::ApiError;
+
+pub struct ProjectList {
+    pub code: String,
+    pub name: String,
+    pub slug: String,
+}
+
+pub async fn project_list(db: &DBManager) -> Result<Vec<ProjectList>, ApiError> {
+    let conn = db.conn().await?;
+
+    let rows = conn.query("SELECT * FROM project", &[]).await?;
+
+    let items: Vec<ProjectList> = rows
+        .iter()
+        .map(|row| ProjectList {
+            code: row.get("code"),
+            name: row.get("name"),
+            slug: row.get("slug"),
+        })
+        .collect();
+
+    Ok(items)
+}
+```
+req api
+```rust
+use serde::Deserialize;
+use tokio_postgres::types::ToSql;
+
+use crate::db::DBManager;
+
+use super::ApiError;
+
+// Constants
+const STATUS_NEW: &str = "new";
+const PROGRESS: i32 = 0;
+
+#[derive(Debug, Deserialize)]
+pub struct RequirementCreateInput {
+    pub requirement: String,
+    pub description: String,
+}
+
+pub async fn create(
+    db: &DBManager,
+    project_id: &i64,
+    input: &RequirementCreateInput,
+) -> Result<i64, ApiError> {
+    let conn = db.conn().await?;
+    let rows = conn
+        .query(
+            "INSERT INTO requirement(project_id, requirement, description, status, progress) VALUES 
+        ($1, $2, $3, $4, $5)  RETURNING id",
+            &[
+                &project_id,
+                &input.requirement,
+                &input.description,
+                &STATUS_NEW,
+                &PROGRESS
+            ],
+        )
+        .await?;
+
+    let Some(row) = rows.get(0) else {
+        return Err(ApiError::Error(
+            "Unable to create new requirement".to_string(),
+        ));
+    };
+
+    Ok(row.get(0))
+}
+
+#[derive(Debug, Deserialize)]
+pub struct RequirementUpdateInput {
+    pub title: Option<String>,
+    pub description: Option<String>,
+    pub status: Option<String>,
+    pub progress: Option<i32>,
+}
+
+pub async fn update_by_id(
+    db: &DBManager,
+    requirement_id: &i64,
+    input: &RequirementUpdateInput,
+) -> Result<bool, ApiError> {
+    let conn = db.conn().await?;
+
+    let mut set_clauses: Vec<String> = Vec::new();
+    let mut params: Vec<&(dyn ToSql + Sync)> = Vec::new();
+
+    if let Some(title) = &input.title {
+        set_clauses.push(format!("title = ${}", params.len() + 1));
+        params.push(title)
+    }
+
+    if let Some(status) = &input.status {
+        set_clauses.push(format!("status = ${}", params.len() + 1));
+        params.push(status)
+    }
+
+    if let Some(progress) = &input.progress {
+        set_clauses.push(format!("progress = ${}", params.len() + 1));
+        params.push(progress)
+    }
+
+    if let Some(description) = &input.description {
+        set_clauses.push(format!("description = ${}", params.len() + 1));
+        params.push(description)
+    }
+
+    if set_clauses.is_empty() {
+        return Err(ApiError::Error(
+            "Enter minimum one data to update".to_string(),
+        ));
+    }
+
+    let query = format!(
+        "UPDATE requirement SET {} WHERE id = ${}",
+        set_clauses.join(", "),
+        params.len() + 1
+    );
+    params.push(requirement_id);
+
+    let val = conn.execute(&query, &params).await?;
+    Ok(val != 0)
+}
+
+pub struct Requirement {
+    pub requirement: String,
+    pub description: String,
+    pub status: String,
+    pub progress: i32,
+}
+
+pub async fn get_list(db: &DBManager, slug: String) -> Result<Vec<Requirement>, ApiError> {
+    let conn = db.conn().await?;
+
+    let project_id = conn
+        .query("SELECT id FROM project WHERE slug = $1", &[&slug])
+        .await?;
+
+    if project_id.is_empty() {
+        return Err(ApiError::Error(format!("Slug does not exist {}", slug)));
+    }
+
+    let project_id: i64 = project_id.first().unwrap().get("id");
+
+    let rows = conn
+        .query(
+            "SELECT * FROM requirements WHERE project_id = $1 ",
+            &[&project_id],
+        )
+        .await?;
+
+    let items: Vec<Requirement> = rows
+        .iter()
+        .map(|row| Requirement {
+            requirement: row.get("requirement"),
+            description: row.get("description"),
+            status: row.get("status"),
+            progress: row.get("progress"),
+        })
+        .collect();
+
+    Ok(items)
+}
+```
+web routes
+```rust
+use axum::{response::Html, Extension};
+use sailfish::TemplateOnce;
+use tracing::info;
+
+use crate::{
+    api::{self, projects::ProjectList},
+    state::ExtAppState,
 };
 
-pub async fn upload(mut multipart: Multipart) -> Result<StatusCode, StatusCode> {
-    while let Some(mut field) = multipart.next_field().await.map_err(|error| {
-        tracing::error!("Error getting next field: {error}");
-        StatusCode::INTERNAL_SERVER_ERROR
-    })? {
-        let name = field
-            .name()
-            .map(ToString::to_string)
-            .unwrap_or("name".to_owned());
-        let file_name = field
-            .file_name()
-            .map(ToString::to_string)
-            .unwrap_or("file_name".to_owned());
-        // let file_size = field.
-        let Some(file_type) = field.content_type().map(ToString::to_string) else {
-            tracing::info!("we don't have a content type :(");
-            break;
+use super::{WebAuthUser, WebResult};
+
+#[derive(TemplateOnce)]
+#[template(path = "home.stpl")]
+pub struct RenderProjectList {
+    items: Vec<ProjectList>,
+    no_data: Option<String>,
+}
+
+pub async fn handler_home(_user: WebAuthUser, Extension(app_state): ExtAppState) -> WebResult {
+    info!("saf345243");
+    let items = api::projects::project_list(&app_state.db).await?;
+    info!("{}", items.len());
+    if items.is_empty() {
+        let ctx = RenderProjectList {
+            items: vec![],
+            no_data: Some("There is no projects available".to_string()),
         };
+        return Ok(Html(ctx.render_once().unwrap()));
+    }
 
-        let file_extension = file_type.split('/').last().unwrap();
-
-        // match file_type.as_str() {
-        //     "image/png" => "png",
-        //     "image/mp4" => "mp4",
-        //     _ => {
-        //         tracing::error!("got a file extension we don't know about");
-        //         return Err(StatusCode::UNSUPPORTED_MEDIA_TYPE);
-        //     }
-        // };
-
-        // let data = field.bytes().await.map_err(|error| {
-        //     tracing::error!("Error get field bytes: {error}");
-        //     StatusCode::INTERNAL_SERVER_ERROR
-        // })?;
-
-        // inside this one field we need to get the chunks until there are no more
-
-        let mut file =
-            File::create(&format!("../upload/{name}.{file_extension}")).map_err(|error| {
-                tracing::error!("error opening file for writing: {error}");
-                StatusCode::INTERNAL_SERVER_ERROR
-            })?;
-
-            let mut data_len = 0;
-
-            loop {
-                let Some(data) = field.chunk().await.map_err(|error| {
-                    tracing::error!("Error getting chunk: {error}");
-                    StatusCode::INTERNAL_SERVER_ERROR
-                })?
-                else {
-                    tracing::info!("no more chunks");
-                    break;
-                };
-                
-                tracing::info!("processing field in multipart");
-                tracing::info!(
-                    "name: {name} - file_name: {file_name} - data: {} - content type: {file_type}",
-                    data.len()
-                );
-
-                data_len += data.len();
-                
-                file.write_all(&data).map_err(|error| {
-                    tracing::error!("Error writing chunk to file: {error}");
-                    StatusCode::INTERNAL_SERVER_ERROR
-                })?;
-            }
-            info!("{}",data_len);
-        }
-        
-    Ok(StatusCode::OK)
-    // Ok(Redirect::temporary("/"))
-}
-// let app = Router::new().route("/upload", post(upload));
-
-#[tokio::main]
-async fn main() {
-    let subscriber = tracing_subscriber::FmtSubscriber::builder()
-        // all spans/events with a level higher than TRACE (e.g, debug, info, warn, etc.)
-        // will be written to stdout.
-        .with_max_level(Level::TRACE)
-        // builds the subscriber.
-        .finish();
-
-    tracing::subscriber::set_global_default(subscriber).expect("setting default subscriber failed");
-
-    // build our application with a single route
-    // let app = Router::new().route("/", get(|| async { "Hello, World!" }));
-    let app = Router::new()
-        .route("/", get(home_handler))
-    .route(
-        "/upload",
-        post(upload).route_layer(DefaultBodyLimit::disable()),
-    );
-
-    // run our app with hyper, listening globally on port 3000
-    let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
-    info!("listening to server in port 3000");
-    axum::serve(listener, app).await.unwrap();
+    let ctx = RenderProjectList {
+        items,
+        no_data: None,
+    };
+    Ok(Html(ctx.render_once().unwrap()))
 }
 
-
-async fn home_handler() -> Html<String> {
-    Html("Home page".to_string())
-}
-
+// pub async fn 
 ```
-
-
-### Remove file
-
-```rust
-#![allow(unused)]
-use std::fs;
-
-fn main() -> std::io::Result<()> {
-    fs::remove_file("a.txt")?;
-    Ok(())
-}
-
-```
-
-### Download file
-
-```rust
-pub async fn download(state: State<AppState>, 
-                      Path(path): Path<String>) -> impl IntoResponse
-{
-    let data = b"your data";
-    let stream = ReaderStream::new(&data[..]);
-    let body = StreamBody::new(stream);
-    let headers = [
-        (header::CONTENT_TYPE, "text/toml; charset=utf-8"),
-        (
-            header::CONTENT_DISPOSITION,
-            "attachment; filename=\"YourFileName.txt\"",
-        ),
-    ];
-    (headers, body).into_response()
-}
+stpl
+```html
+<% for item in items.iter() { %>
+    <div>
+        <a href="/delete/<%= item.name %>" title="<%= item.name %>">
+            <%= item.name %>
+        </a>
+    <div>
+<% } %>
+<% if no_data.is_some() { %>
+    <div>
+        <h3>
+            <%= no_data.unwrap() %>
+        <h3>
+    </div>
+<% } %>
 ```
