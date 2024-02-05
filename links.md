@@ -13,3 +13,6 @@ multipart video -> https://www.youtube.com/watch?v=yDwuDZ9mCwo    </br>
 
 
 axum  tut -> https://youtube.com/playlist?list=PLGOIZXklfFkQMX9OJLqpU9MDkIU0ueunW&si=blOJUHUtDXEq21Ms </br>
+
+
+**File cuntont as json out put ** &rarr; https://stackoverflow.com/questions/73325707/how-to-return-contents-as-a-file-download-in-axum
