@@ -128,3 +128,23 @@ fn main() -> std::io::Result<()> {
 }
 
 ```
+
+### Download file
+
+```rust
+pub async fn download(state: State<AppState>, 
+                      Path(path): Path<String>) -> impl IntoResponse
+{
+    let data = b"your data";
+    let stream = ReaderStream::new(&data[..]);
+    let body = StreamBody::new(stream);
+    let headers = [
+        (header::CONTENT_TYPE, "text/toml; charset=utf-8"),
+        (
+            header::CONTENT_DISPOSITION,
+            "attachment; filename=\"YourFileName.txt\"",
+        ),
+    ];
+    (headers, body).into_response()
+}
+```
