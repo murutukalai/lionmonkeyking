@@ -14,9 +14,11 @@ multipart video -> https://www.youtube.com/watch?v=yDwuDZ9mCwo    </br>
 
 axum  tut -> https://youtube.com/playlist?list=PLGOIZXklfFkQMX9OJLqpU9MDkIU0ueunW&si=blOJUHUtDXEq21Ms </br>
 
-https://stackoverflow.com/questions/73325707/how-to-return-contents-as-a-file-download-in-axum
-
 
 **File cuntont as json out put ** &rarr; https://stackoverflow.com/questions/73325707/how-to-return-contents-as-a-file-download-in-axum
 
 **Serve file** &rarr; https://github.com/tokio-rs/axum/discussions/608
+
+
+
+creat dir  &rarr;https://stackoverflow.com/questions/32384594/how-to-check-whether-a-path-exists
