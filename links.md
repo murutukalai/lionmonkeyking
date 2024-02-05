@@ -4,6 +4,7 @@ https://github.com/dpc/stpl    </br>
 https://www.semrush.com/blog/url-parameters/    </br>
 https://htmx.org/    </br>
     </br>
+**File system** &rarr; https://doc.rust-lang.org/std/fs/index.html
 ### Multipart
 https://github.com/brooks-builds/exploring_axum_multipart    </br>
 
