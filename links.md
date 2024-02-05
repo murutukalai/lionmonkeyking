@@ -16,3 +16,5 @@ axum  tut -> https://youtube.com/playlist?list=PLGOIZXklfFkQMX9OJLqpU9MDkIU0ueun
 
 
 **File cuntont as json out put ** &rarr; https://stackoverflow.com/questions/73325707/how-to-return-contents-as-a-file-download-in-axum
+
+**Serve file** &rarr; https://github.com/tokio-rs/axum/discussions/608
