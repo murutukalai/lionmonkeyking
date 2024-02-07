@@ -22,3 +22,6 @@ axum  tut -> https://youtube.com/playlist?list=PLGOIZXklfFkQMX9OJLqpU9MDkIU0ueun
 
 
 creat dir  &rarr;https://stackoverflow.com/questions/32384594/how-to-check-whether-a-path-exists
+
+
+path &rarr;  https://docs.rs/axum/latest/axum/extract/struct.Path.html
