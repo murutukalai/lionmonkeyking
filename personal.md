@@ -230,7 +230,8 @@ use crate::{
 };
 
 // Constant
-const FILE_PATH: &str = "upload";
+const WRITE_FILE_PATH: &str = "public/requirement";
+const READ_FILE_PATH: &str = "assets/requirement";
 
 #[derive(TemplateOnce, Debug)]
 #[template(path = "includes/list_document.stpl")]
@@ -243,7 +244,7 @@ pub struct TemplateContentDoc {
 }
 
 pub async fn handler_create(
-    // user: RestAuthUser,
+    user: RestAuthUser,
     Extension(app_state): ExtAppState,
     Path((slug, req_id)): Path<(String, i64)>,
     mut multipart: Multipart,
@@ -252,10 +253,10 @@ pub async fn handler_create(
     let project = project::get_by_slug(&db, &slug).await.unwrap();
 
     // Creating a directory if not exist
-    if !path::Path::new(&format!("./{FILE_PATH}")).exists() {
-        let Ok(_) = fs::create_dir("./upload") else {
+    if !path::Path::new(&format!("./{WRITE_FILE_PATH}")).exists() {
+        let Ok(_) = fs::create_dir(format!("./{WRITE_FILE_PATH}").as_str()) else {
             tracing::info!("Unable to create dir");
-            return Err(RestError::Error("UNSUPPORTED_MEDIA_TYPE".to_string()));
+            return Err(RestError::Error("Unable to create dir".to_string()));
         };
     };
 
@@ -277,18 +278,20 @@ pub async fn handler_create(
             .file_name()
             .map(ToString::to_string)
             .unwrap_or("file_name".to_owned());
-
+        
         let Some(file_typ) = field.content_type().map(ToString::to_string) else {
             tracing::info!("We don't have a content type");
             return Err(RestError::Error("UNSUPPORTED_MEDIA_TYPE".to_string()));
         };
+
+        info!{"file"};
         file_type = file_typ;
 
         let Some(file_extension) = file_type.split('/').last() else {
             return Err(RestError::Error("Unable to get file extension".to_string()));
         };
 
-        let mut file = File::create(&format!("./{FILE_PATH}/{file_name}")).map_err(|error| {
+        let mut file = File::create(&format!("./{WRITE_FILE_PATH}/{file_name}")).map_err(|error| {
             tracing::error!("Error opening file for writing: {error}");
             RestError::Error("INTERNAL_SERVER_ERROR".to_string())
         })?;
@@ -322,7 +325,7 @@ pub async fn handler_create(
             data_len,
             file_type
         );
-        path = format!("{FILE_PATH}/{file_name}");
+        path = format!("{READ_FILE_PATH}/{file_name}");
     }
 
     let val = document::create(
@@ -335,8 +338,8 @@ pub async fn handler_create(
         let requirement = requirement::get_by_id(&db, project.id, req_id).await?;
         let docs = document::get_list(&db, project.id, req_id, true).await?;
         let ctx = TemplateContentDoc {
-            role_is_admin: true, //user.is_admin(),
-            role_is_qa: true,    //user.is_qa(),
+            role_is_admin: user.is_admin(),
+            role_is_qa: user.is_qa(),
             project,
             requirement,
             docs,
