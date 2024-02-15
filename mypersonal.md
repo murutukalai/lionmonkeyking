@@ -1,5 +1,4 @@
 ```html
-// doc model
 <div id="<%= modal_id %>" class="modal modal--hidden">
 	<div class="modal__cont">
 		<% include!("../components/modal_header.stpl"); %>
@@ -8,11 +7,16 @@
 				id="form-<%= modal_id %>"
 				action="<%= modal_action %>"
 				method="post"
-				class="form"
 				data-form-trigger="modal-close#<%= modal_id %>"
 				data-form-replace="content-doc"
+				<% if !modal_is_edit && role_is_admin { %>
 				enctype="multipart/form-data"
+				<% } %>
+				<% if modal_is_edit && role_is_admin { %>
+					class="form"
+				<% } %>
 			>
+			<% if modal_is_edit && role_is_admin { %>
 				<div class="form__row">
 					<div class="form__field form__col1">
 						<label for="input-label" class="form__label"
@@ -29,6 +33,7 @@
 						/>
 					</div>
 				</div>
+				<% } %>
 				<% if !modal_is_edit && role_is_admin { %>
 				<div>
 					<label>
@@ -47,6 +52,7 @@
 							required
 							class="form__selct"
 						>
+						<option value="D">Draft</option>
 							<option value="R">Ready</option>
 							<option value="A">Archived</option>
 						</select>
@@ -65,6 +71,7 @@
 		</div>
 	</div>
 </div>
+
 
 //list doc
 
