@@ -25,3 +25,11 @@ creat dir  &rarr;https://stackoverflow.com/questions/32384594/how-to-check-wheth
 
 
 path &rarr;  https://docs.rs/axum/latest/axum/extract/struct.Path.html
+
+
+```rust
+let current_date: chrono::NaiveDate = chrono::Local::now().naive_local().into();
+```
+```rust
+markdown::to_html_with_options(&input.testcase, &Options::gfm()).unwrap();
+```
