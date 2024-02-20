@@ -1,113 +1,4 @@
 ```rust
-// Api - Employee
-
-use serde::Serialize;
-use std::collections::HashMap;
-
-use super::ApiError;
-use crate::db::DBConnection;
-
-/* Struct */
-
-#[derive(Debug, Clone, Serialize)]
-pub struct EmployeeInfo {
-    pub id: i64,
-    pub name: String,
-}
-
-/* Private Functions */
-
-/* Public Functions */
-
-pub async fn get_by_username(
-    db: &DBConnection<'_>,
-    username: &String,
-) -> Result<EmployeeInfo, ApiError> {
-    let rows = db
-        .query(
-            "SELECT id, name FROM employee WHERE username = $1",
-            &[&username.to_lowercase()],
-        )
-        .await?;
-
-    let Some(row) = rows.first() else {
-        return Err(ApiError::Error(format!(
-            "Employee with username {} does not exist",
-            username
-        )));
-    };
-
-    Ok(EmployeeInfo {
-        id: row.get("id"),
-        name: row.get("name"),
-    })
-}
-
-pub async fn get_names_by_ids(
-    db: &DBConnection<'_>,
-    employee_ids: Vec<i64>,
-) -> Result<HashMap<i64, EmployeeInfo>, ApiError> {
-    let rows = db
-        .query(
-            "SELECT id, name FROM employee WHERE id = ANY($1)",
-            &[&employee_ids],
-        )
-        .await?;
-
-    let mut employee_list: HashMap<i64, EmployeeInfo> = HashMap::new();
-    for row in rows {
-        employee_list.insert(
-            row.get("id"),
-            EmployeeInfo {
-                id: row.get("id"),
-                name: row.get("name"),
-            },
-        );
-    }
-
-    Ok(employee_list)
-}
-
-pub async fn get_technical_type(
-    db: &DBConnection<'_>,
-    emp_id: i64,
-) -> Result<Option<String>, ApiError> {
-    let opt_row = db
-        .query_opt(
-            r#"SELECT t.type
-               FROM team_employee AS te 
-               INNER JOIN team AS t ON te.team_id = t.id
-               WHERE te.employee_id = $1"#,
-            &[&emp_id],
-        )
-        .await?;
-
-    let Some(row) = opt_row else {
-        return Ok(None);
-    };
-
-    if *"qa" == row.get::<_, String>(0) {
-        return Ok(None);
-    }
-
-    Ok(row.get(0))
-}
-
-pub async fn employee_list(db: &DBConnection<'_>) -> Result<Vec<EmployeeInfo>, ApiError> {
-    let rows = db.query("SELECT id, name FROM employee", &[]).await?;
-
-    let employee_vec: Vec<EmployeeInfo> = rows
-        .iter()
-        .map(|row| EmployeeInfo {
-            id: row.get("id"),
-            name: row.get("name"),
-        })
-        .collect();
-
-    Ok(employee_vec)
-}
-
-
 // Api - Task
 
 use chrono::{self, NaiveDate};
@@ -150,10 +41,11 @@ pub struct TaskUpdateInput {
 
 #[derive(Debug, Serialize, Clone)]
 pub struct TaskList {
+    pub id: i64,
     pub title: String,
-    pub description: String,
+    pub description: Option<String>,
     pub status: String,
-    pub priority: i8,
+    pub priority: String,
     pub task_type: String,
     pub due_date: NaiveDate,
     pub created_by: String,
@@ -163,7 +55,7 @@ pub struct TaskList {
 
 #[derive(Debug, Serialize, Clone)]
 pub struct TaskGroup {
-    pub priority: i8,
+    pub priority: String,
     pub task: Vec<TaskList>,
 }
 
@@ -199,33 +91,33 @@ pub async fn get_employee_due_list(
         )
         .await?;
 
-    let mut task_group_vec: Vec<TaskGroup> = Vec::new();
-    let mut vec_priority: Vec<i8> = Vec::new();
-    let mut task_vec: TaskGroup = TaskGroup {
-        priority: 1,
-        task: vec![],
-    };
-    for row in rows {
-        if !vec_priority.contains(&row.get::<_, i8>("priority")) {
-            vec_priority.push(row.get::<_, i8>("priority"));
+        let mut task_group_vec: Vec<TaskGroup> = Vec::new();
+    let mut vec_priority: Vec<String> = Vec::new();
 
-            if !task_vec.clone().task.is_empty() {
-                task_group_vec.push(task_vec.clone());
-            }
-            task_vec.clone().task.clear();
-            task_vec.priority = row.get::<_, i8>("priority");
-        }
-        task_vec.clone().task.push(TaskList {
+    for row in rows {
+        let task: TaskList = TaskList {
+            id: row.get("id"),
             title: row.get("title"),
             description: row.get("description"),
             status: row.get("status"),
             priority: row.get("priority"),
-            task_type: row.get("due_date"),
-            due_date: row.get("created_by"),
-            created_by: row.get("type"),
+            task_type: row.get("type"),
+            due_date: row.get("due_date"),
+            created_by: row.get("created_by"),
             assignee_name: row.get("username"),
             project_title: row.get("name"),
-        })
+        };
+
+        if !vec_priority.contains(&task.priority) {
+            vec_priority.push(task.priority.clone());
+            task_group_vec.push(TaskGroup {
+                priority: task.priority.clone(),
+                task: vec![task],
+            });
+        } else {
+            let index = vec_priority.iter().position(|p| p == &task.priority).unwrap();
+            task_group_vec[index].task.push(task);
+        }
     }
 
     Ok(task_group_vec)
@@ -386,7 +278,8 @@ pub async fn update_by_id(
     Ok(val != 0)
 }
 
-
+```
+```rust
 // Route - Rest - Task
 
 use axum::{extract::Path, Extension, Json};
@@ -566,7 +459,8 @@ pub async fn handler_update(
     }))
 }
 
-
+```
+```rust
 // Route - Web - Requirement
 
 use axum::{extract::Path, response::Html, Extension};
@@ -599,6 +493,7 @@ pub struct TemplateRequirements {
     backend_options: Vec<OptionItem>,
     mobile_options: Vec<OptionItem>,
     qa_options: Vec<OptionItem>,
+    assignee_vec: Vec<EmployeeInfo>
 }
 
 /* Private Functions */
@@ -640,6 +535,7 @@ pub async fn handler_list(
         }
     }
 
+    let assignee_vec = employee::employee_list(&db).await?;
     let page_title = format!("{} - Requirements", project.title);
     let ctx = TemplateRequirements {
         page_title,
@@ -653,6 +549,7 @@ pub async fn handler_list(
         backend_options,
         mobile_options,
         qa_options,
+        assignee_vec
     };
     Ok(Html(ctx.render_once().unwrap()))
 }
@@ -759,4 +656,117 @@ pub async fn handler_detail(
     };
     Ok(Html(ctx.render_once().unwrap()))
 }
+
 ```
+```rust
+// Api - Employee
+
+use serde::Serialize;
+use std::collections::HashMap;
+
+use super::ApiError;
+use crate::db::DBConnection;
+
+/* Struct */
+
+#[derive(Debug, Clone, Serialize)]
+pub struct EmployeeInfo {
+    pub id: i64,
+    pub name: String,
+}
+
+/* Private Functions */
+
+/* Public Functions */
+
+pub async fn get_by_username(
+    db: &DBConnection<'_>,
+    username: &String,
+) -> Result<EmployeeInfo, ApiError> {
+    let rows = db
+        .query(
+            "SELECT id, name FROM employee WHERE username = $1",
+            &[&username.to_lowercase()],
+        )
+        .await?;
+
+    let Some(row) = rows.first() else {
+        return Err(ApiError::Error(format!(
+            "Employee with username {} does not exist",
+            username
+        )));
+    };
+
+    Ok(EmployeeInfo {
+        id: row.get("id"),
+        name: row.get("name"),
+    })
+}
+
+pub async fn get_names_by_ids(
+    db: &DBConnection<'_>,
+    employee_ids: Vec<i64>,
+) -> Result<HashMap<i64, EmployeeInfo>, ApiError> {
+    let rows = db
+        .query(
+            "SELECT id, name FROM employee WHERE id = ANY($1)",
+            &[&employee_ids],
+        )
+        .await?;
+
+    let mut employee_list: HashMap<i64, EmployeeInfo> = HashMap::new();
+    for row in rows {
+        employee_list.insert(
+            row.get("id"),
+            EmployeeInfo {
+                id: row.get("id"),
+                name: row.get("name"),
+            },
+        );
+    }
+
+    Ok(employee_list)
+}
+
+pub async fn get_technical_type(
+    db: &DBConnection<'_>,
+    emp_id: i64,
+) -> Result<Option<String>, ApiError> {
+    let opt_row = db
+        .query_opt(
+            r#"SELECT t.type
+               FROM team_employee AS te 
+               INNER JOIN team AS t ON te.team_id = t.id
+               WHERE te.employee_id = $1"#,
+            &[&emp_id],
+        )
+        .await?;
+
+    let Some(row) = opt_row else {
+        return Ok(None);
+    };
+
+    if *"qa" == row.get::<_, String>(0) {
+        return Ok(None);
+    }
+
+    Ok(row.get(0))
+}
+
+pub async fn employee_list(db: &DBConnection<'_>) -> Result<Vec<EmployeeInfo>, ApiError> {
+    let rows = db.query("SELECT id, name FROM employee", &[]).await?;
+
+    let employee_vec: Vec<EmployeeInfo> = rows
+        .iter()
+        .map(|row| EmployeeInfo {
+            id: row.get("id"),
+            name: row.get("name"),
+        })
+        .collect();
+
+    Ok(employee_vec)
+}
+
+```
+
+
