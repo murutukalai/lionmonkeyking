@@ -1,7 +1,66 @@
 ```html
+<div id="<%= modal_id %>" class="modal modal--hidden">
+    <% include!("../components/modal_header.stpl"); %>
+    <div class="modal__cont">
+        <form 
+            id="form-<%= modal_id %>"
+            action="<%= modal_action %>"
+            method="post"
+            class="form"
+            data-form-trigger="modal-close#<%= modal_id %>"
+        >
+            <div class="modal__detl">
+                <div class="form__row">
+                    <div class="form__field ">
+                        <label for="title" class="form__label">Title:</label>
+                        <input id="title" class="form__input" type="text" name="title" required maxlength="128" value="" />
+                    </div>
+                </div>
+                <div class="form__row">
+                    <div class="form__field form__col1">
+                        <label for="assignee_id" class="form__label">Assignee:</label>
+                        <select class="form__selct" id="assignee_id" name="assignee_id">
+                            <option value=""></option>
+                            <% for assignee in task_assignees { %>
+                            <option value="<%= assignee.id %>"><%= assignee.name %></option>
+                            <% } %>
+                        </select>
+                    </div>
+                    <div class="form__field form__col1">
+                        <label for="priority" class="form__label">Priority:</label>
+                        <select class="form__selct" id="priority" name="priority" value="">
+                            <option value="4">Urgent</option>
+                            <option value="3">High</option>
+                            <option value="2">Medium</option>
+                            <option value="1">Low</option>
+                        </select>                            
+                    </div>
+                    <div class="form__field form__col1">
+                        <label for="due_date" class="form__label">Due Date:</label>
+                        <input id="due_date" class="form__input" type="date" name="due_date" required/>
+                    </div>
+                </div>
+                <div class="form__row">
+                    <div class="form__field">
+                        <label for="description" class="form__label">Description:</label>
+                        <textarea class="form__txtar" id="description" name="description" rows="4"></textarea>
+                    </div>
+                </div>
+            </div>
+            <div class="modal__footr">
+                <button class="buttn" data-modal-trigger="hide">Cancel</button>
+                <button class="buttn buttn--primary" type="submit">Save</button>
+            </div>
+        </form>
+    </div>
+</div>
+```
+
+task_emp
+```html
 <% include!("../includes/page_header.stpl"); %>
 
-<main class="cont">
+<main class="contain">
 	<div class="conthdr">
 		<div class="conthdr__info">
 			<h2 class="conthdr__title">Task</h2>
@@ -27,41 +86,45 @@
 			</ol>
 		</div>
 	</div>
-	<% for item in items.iter() {%>
-    <div class="datgrd__tit"><%= item.priority %></div>
+    <div class="datgrd__tit">Priority</div>
 	<div class="datgrd">
 		<div class="datgrd__cnt">
 			<div class="datgrd__headr">
-				<div class="datgrd__hcol datgrd__hcol__w7">Project Name</div>
+				<div class="datgrd__hcol datgrd__hcol__w5">Project Name</div>
                 <div class="datgrd__hcol datgrd__col__auto">Title</div>
-				<div class="datgrd__hcol datgrd__hcol__w5">Assignee</div>
-				<div class="datgrd__hcol datgrd__hcol__w5">Status</div>
+				<div class="datgrd__hcol datgrd__hcol__w4">Assignee</div>
+				<div class="datgrd__hcol datgrd__hcol__w4">Status</div>
 				<div class="datgrd__hcol datgrd__hcol__w3">Priority</div>
 				<div class="datgrd__hcol datgrd__hcol__w4">Due Date</div>
 				<div class="datgrd__col datgrd__hcol__w3"></div>
 				<div class="datgrd__col datgrd__hcol__w4"></div>
 			</div>
-
+			
+			<% for item in items.iter() {%>
             <% for task in item.tasks.iter() { %>
 			<div class="datgrd__rows">
 				<div class="datgrd__row">
-					<div class="datgrd__col datgrd__col__w7"><%= task.project_title %></div>
+					<div class="datgrd__col datgrd__col__w5"><%= task.project_title %></div>
 					<div class="datgrd__col datgrd__col__auto"><%= task.title %></div>
-					<div class="datgrd__col datgrd__col__w5"><%= task.assignee_name %></div>
-					<div class="datgrd__col datgrd__col__w5 ">
+					<div class="datgrd__col datgrd__col__w4"><%= task.assignee_name %></div>
+					<div class="datgrd__col datgrd__col__w4">
                         <span class="tag tag--blue"><%= task.status %></span>
                     </div>
 					<div class="datgrd__col datgrd__col__w3"><%= task.priority %></div>
 					<div class="datgrd__col datgrd__col__w4"><%= task.due_date %></div>
-					<div class="datgrd__col datgrd__hcol__w3">
-						<a class="datgrd__actn buttn buttn--small" href="#" title="Edit">
+					<div class="datgrd__col datgrd__hcol__w5">
+						<button 
+							type="button"
+							class="datgrd__actn buttn buttn--small"  
+							data-modal-edit="modal-task-edit"
+							data-edit-url="/api/task/<%= task.id %>"
+                    		data-edit-form="/api/task/<%= task.id %>"
+						>
 							<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-pencil-square" viewBox="0 0 16 16">
 								<path d="M15.502 1.94a.5.5 0 0 1 0 .706L14.459 3.69l-2-2L13.502.646a.5.5 0 0 1 .707 0l1.293 1.293zm-1.75 2.456-2-2L4.939 9.21a.5.5 0 0 0-.121.196l-.805 2.414a.25.25 0 0 0 .316.316l2.414-.805a.5.5 0 0 0 .196-.12l6.813-6.814z"/>
 								<path fill-rule="evenodd" d="M1 13.5A1.5 1.5 0 0 0 2.5 15h11a1.5 1.5 0 0 0 1.5-1.5v-6a.5.5 0 0 0-1 0v6a.5.5 0 0 1-.5.5h-11a.5.5 0 0 1-.5-.5v-11a.5.5 0 0 1 .5-.5H9a.5.5 0 0 0 0-1H2.5A1.5 1.5 0 0 0 1 2.5z"/>
-								</svg>
-						</a>
-					</div>
-					<div class="datgrd__col datgrd__hcol__w4">
+							</svg>
+						</button>
 						<% if let Some(req_id) = task.requirement_id { %>
 						<a class="datgrd__actn buttn buttn--small" href="/<%= task.project_slug %>/requirement/<%= req_id %>" title="Requirement">
 							<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-bricks" viewBox="0 0 16 16">
@@ -80,9 +143,19 @@
 				</div>
             </div>
 			<% } %>
+			<% } %>
         </div>
     </div>
-	<% } %>
+<div class="modal__back">
+
+	<%
+    let modal_title = "Edit Task";
+    let modal_id = "modal-task-edit";
+    let modal_is_edit = true;
+    let modal_action = "/api/task/update"; 
+	%>
+	<% include!("../includes/task_modal.stpl"); %>
+</div>
 </main>
 
 <% include!("../includes/page_footer.stpl"); %>
