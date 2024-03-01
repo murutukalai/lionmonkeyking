@@ -1,5 +1,5 @@
 ```rust
-// Route - Rest - Document
+// Route -Rest - Document
 
 use axum::{
     extract::{Multipart, Path},
@@ -58,6 +58,7 @@ pub async fn handler_create(
     let mut file_type: String = String::new();
     let mut data_len: i64 = 0;
     let mut path: String = String::new();
+    let mut val: i64 = 0;
 
     while let Some(mut field) = multipart.next_field().await.map_err(|error| {
         tracing::error!("Error getting next field: {error}");
@@ -113,12 +114,12 @@ pub async fn handler_create(
             file_type
         );
         path = file_name.to_string();
-    }
 
-    let val = document::create(
-        &db, project.id, req_id, &file_name, data_len, &file_type, &path,
-    )
-    .await?;
+        val = document::create(
+            &db, project.id, req_id, &file_name, data_len, &file_type, &path,
+        )
+        .await?;
+    }
 
     let mut content: Option<String> = None;
     if val > 0 {
