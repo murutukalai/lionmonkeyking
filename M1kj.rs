@@ -11,3 +11,15 @@ fn main() {
 
     println!("{:?}", union_set);
 }
+
+```
+use std::collections::HashSet;
+
+fn main() {
+    let set1: HashSet<i32> = [1, 2, 3, 4, 5].iter().cloned().collect();
+    let set2: HashSet<i32> = [3, 4, 5, 6, 7].iter().cloned().collect();
+
+    let union_set: HashSet<&i32> = set1.union(&set2).collect();
+
+    println!("{:?}", union_set);
+}
