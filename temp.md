@@ -1,54 +1,10 @@
 ```rust
-INSERT INTO role (title, description, is_active, created_by, created_by_id) VALUES 
-('Administrator', 'Has full access to all system functions.', true, 'admin_user', 1),
-('Manager', 'Responsible for overseeing team activities.', true, 'manager1', 1),
-('Developer', 'Works on developing new features and fixing bugs.', true, 'dev_user', 1),
-('Sales Associate', 'Handles customer inquiries and sales transactions.', true, 'sales_user', 1),
-('Customer Support', 'Provides assistance and support to customers.', true, 'support_user', 1),
-('Marketing Specialist', 'Creates and executes marketing campaigns.', true, 'marketing_user', 1),
-('Accountant', 'Manages financial records and prepares reports.', true, 'accountant1', 1),
-('Human Resources', 'Handles hiring, onboarding, and employee relations.', true, 'hr_user', 1),
-('Quality Assurance', 'Ensures product quality through testing and analysis.', true, 'qa_user', 1),
-('Intern', 'Entry-level role for gaining practical work experience.', true, 'intern1', 1),
-('Supervisor', 'Oversees the work of a team or department.', true, 'supervisor1', 1),
-('Project Manager', 'Manages projects from initiation to completion.', true, 'project_mgr', 1),
-('Executive Assistant', 'Provides administrative support to executives.', true, 'exec_asst', 1),
-('Consultant', 'Provides expert advice and recommendations to clients.', true, 'consultant1', 1),
-('Technical Support', 'Assists users with technical issues and troubleshooting.', true, 'tech_support', 1),
-('Research Analyst', 'Conducts research and analysis for decision-making.', true, 'research_analyst', 1),
-('Product Manager', 'Oversees the development and launch of products.', true, 'product_mgr', 1),
-('Operations Coordinator', 'Coordinates operational activities within a department.', true, 'ops_coord', 1),
-('Graphic Designer', 'Creates visual concepts and designs for various purposes.', true, 'graphic_designer', 1),
-('Event Planner', 'Plans and coordinates events and meetings.', true, 'event_planner', 1),
-('Content Writer', 'Creates written content for websites, blogs, etc.', true, 'content_writer', 1),
-('Legal Counsel', 'Provides legal advice and representation to the organization.', true, 'legal_counsel', 1),
-('IT Administrator', 'Manages and maintains IT infrastructure and systems.', true, 'it_admin', 1),
-('Training Coordinator', 'Coordinates training programs for employees.', true, 'training_coord', 1),
-('Financial Analyst', 'Analyzes financial data and prepares forecasts.', true, 'financial_analyst', 1),
-('Architect', 'Designs and plans architectural projects.', true, 'architect1', 1),
-('Security Officer', 'Ensures the security of people and property.', true, 'security_officer', 1),
-('Translator', 'Converts written material from one language to another.', true, 'translator1', 1),
-('Customer Success Manager', 'Manages relationships with key customers.', true, 'cust_success_mgr', 1),
-('Business Analyst', 'Analyzes business processes and requirements.', true, 'business_analyst', 1),
-('Network Engineer', 'Designs, implements, and manages computer networks.', true, 'network_engineer', 1),
-('Technical Writer', 'Writes technical documentation and manuals.', true, 'tech_writer', 1),
-('Healthcare Professional', 'Provides medical care and services.', true, 'healthcare_professional', 1),
-('System Administrator', 'Manages and maintains computer systems and servers.', true, 'sys_admin', 1),
-('Sales Manager', 'Leads and manages the sales team.', true, 'sales_mgr', 1),
-('UX/UI Designer', 'Designs user interfaces and experiences for digital products.', true, 'ux_ui_designer', 1),
-('Supply Chain Analyst', 'Analyzes and optimizes supply chain processes.', true, 'supply_chain_analyst', 1),
-('Data Scientist', 'Analyzes and interprets complex data to inform decision-making.', true, 'data_scientist', 1),
-('Mechanical Engineer', 'Designs and develops mechanical systems and products.', true, 'mechanical_engineer', 1),
-('Recruiter', 'Sources, screens, and interviews candidates for job positions.', true, 'recruiter1', 1),
-('Operations Manager', 'Oversees and manages the day-to-day operations of a business.', true, 'ops_mgr', 1),
-('Customer Experience Specialist', 'Focuses on improving customer satisfaction and loyalty.', true, 'cust_exp_specialist', 1),
-('Software Engineer', 'Develops software applications and systems.', true, 'software_engineer', 1),
-('Digital Marketing Manager', 'Leads digital marketing strategies and campaigns.', true, 'digital_marketing_mgr', 1),
-('Electrical Engineer', 'Designs and develops electrical systems and components.', true, 'electrical_engineer', 1),
-('Brand Manager', 'Manages and promotes the brand identity and image.', true, 'brand_manager', 1),
-('Operations Analyst', 'Analyzes operational processes and identifies areas for improvement.', true, 'ops_analyst', 1),
-('UI/UX Developer', 'Develops user interfaces and experiences for digital products.', true, 'ui_ux_dev', 1),
-('Data Analyst', 'Analyzes data to extract insights and support decision-making.', true, 'data_analyst', 1),
-('Public Relations Specialist', 'Manages communication between an organization and the public.', true, 'pr_specialist', 1);
+git-pull:
+  cd companyapp && git pull
+  cd consolenxt && git pull
+  cd platform-backend && git pull
+  cd project-app && git pull
+  cd training-app && git pull
+  cd workshop-backend && git pull
 
 ```
