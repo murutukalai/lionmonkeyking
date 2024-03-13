@@ -226,3 +226,55 @@ mod tests {
 }
 ```
 
+## Employee.stpl
+```html
+<% include!("../../includes/page_header.stpl"); %>
+
+<h3>Employee <Details></Details></h3>
+<%= employee.id %>
+<%= employee.username %>
+<%= employee.email %>
+<%= employee.name %>
+<%= employee.status %>
+<%= employee.email %>
+<%= employee.mobile %>
+<%= employee.designation %>
+<%= employee.gender %>
+<%= employee.image %>
+<%= employee.first_name %>
+<%= employee.last_name %>
+<%= employee.initial %>
+<%= employee.degree %>
+<%= employee.blood_group %>
+<%= employee.marital_status %>
+<%= employee.father_name %>
+<%= employee.mother_name %>
+<%= employee.city %>
+<%= employee.current_address %>
+<%= employee.permanent_address %>
+<%= employee.education_details %>
+<%= employee.experience_details %>
+<%= employee.health_details %>
+<%= employee.hobbies %>
+<%= employee.is_active %>
+<%= employee.joined_date %>
+<%= employee.contact_other %>
+<%= employee.contact_mother %>
+<%= employee.contact_father %>
+<%= employee.created_by %>
+<%= employee.created_by_id %>
+<% if let Some(exit_date) = employee.exit_date { %>
+    <%= exit_date %>
+<% } %>
+<%= employee.description %>
+<%= employee.is_trainee %>
+
+<h3>Employee Roles</h3>
+<% include!("../../includes/hrms/role_list.stpl"); %>
+
+<h3>Employee Privileges</h3>
+<% include!("../../includes/hrms/privilege_list.stpl"); %>
+
+<% include!("../../includes/page_footer.stpl"); %>
+```
+
