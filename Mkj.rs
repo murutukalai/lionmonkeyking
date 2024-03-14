@@ -44,3 +44,41 @@ fn main() {
 
     println!("{:?}", union_set);
 }
+
+
+use core::fmt::{self, Display};
+
+use serde_derive::Deserialize;
+
+#[derive(Debug, Deserialize)]
+struct ApiErrorResponse {
+    errors: Vec<Error>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(from = "ApiErrorResponse")]
+struct Error {
+    code: i64,
+    text: String,
+}
+
+impl From<ApiErrorResponse> for Error {
+    fn from(response: ApiErrorResponse) -> Self {
+        Self {
+            code: response.errors[0].code,
+            text: response.errors[0].text.to_string(),
+        }
+    }
+}
+
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let body = reqwest::get("https://api.betaseries.com/search/shows")
+        .await?
+        .json::<ApiErrorResponse>()
+        .await?;
+
+    println!("{:#?}", body.errors);
+
+    Ok(())
+}
