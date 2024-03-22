@@ -67,4 +67,5 @@ pub struct Requirement {
     <% for tag in item.tags.iter() { %>
         <%= tag %>
     <% } %>
-</span>```
+</span>
+```
