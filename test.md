@@ -138,4 +138,5 @@ async fn logout() -> Redirect {
 https://github.com/awslabs/aws-sdk-rust
 https://docs.rs/aws-sdk-cognitoidentityprovider/latest/aws_sdk_cognitoidentityprovider/
 https://github.com/MoonKraken/youtube/tree/main/RustOnAWS
+https://github.com/jeremychone-channel/rust-aws-sdk-s3-demo
 ```
