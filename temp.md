@@ -9,19 +9,13 @@ use axum::{Extension, Json};
 use backend_api::hrms::employee;
 use backend_api::OptionItem;
 use sailfish::TemplateOnce;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use futures::stream::{self, Stream};
-
-use crate::route::rest::{convert, RestContentResponse, RestResult};
-use crate::{
-    route::rest::{RestAuthUser, RestCommonResponse},
-    state::ExtAppState,
-};
-use backend_api::common::notification::{self, NotificationItem};
 
 
 
 --------------------------------------------------------------------------------------------------
+
 
 
 
@@ -54,13 +48,13 @@ pub async fn handler_get_stat(
         has_add_access: acl.has_privilege("common", "notification", "add", None),
     };
 
-    let val = Json(RestContentResponse {
+    let val = RestContentResponse {
         success: true,
         error: None,
         content: Some(ctx.render_once().unwrap()),
-    });
+    };
 
-    let stream = stream::repeat_with(move || Event::default().json_data(val).unwrap())
+    let stream = stream::repeat_with(move || Event::default().json_data(val.clone()).unwrap())
         .map(Ok)
         .throttle(Duration::from_secs(1));
 
