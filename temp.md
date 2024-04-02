@@ -1,77 +1,71 @@
+```rust
+use chrono::NaiveDateTime;
 
-```
-use std::convert::Infallible;
-use std::time::Duration;
-use tokio_stream::StreamExt as _;
-use axum::response::sse::Event;
-use axum::response::Sse;
-use axum::{Extension, Json};
-use backend_api::hrms::employee;
-use backend_api::OptionItem;
-use sailfish::TemplateOnce;
-use serde::{Deserialize, Serialize};
-use futures::stream::{self, Stream};
+use crate::{ApiError, DBConnection};
+
+pub struct PostDetail{
+    id: i64,
+    title: String,
+    content: String,
+    summary: String,
+    image: String,
+    created_by: String,
+    slug: String,
+    seo_title: String,
+    seo_keywords: String,
+    seo_description: String,
+    published_on: NaiveDateTime,
+    no_visits: i16,
+    weightage: i16
+}
 
 
-
---------------------------------------------------------------------------------------------------
-
-
-
-
-
-pub async fn handler_get_stat(
-    user: RestAuthUser,
-    Extension(app_state): ExtAppState,
-) -> Sse<impl Stream<Item = Result<Event, Infallible>>> {
-    let acl = user.get_acl();
-    let db = app_state.db.conn().await.unwrap();
-
-    acl.check_privilege(&db, user.id, "common", "notification", "view", None)
-        .await.unwrap();
-
-    let stats = notification::get_count_by_employee(&db, user.id).await.unwrap();
-
-    let mut count_others: i64 = 0;
-    let mut count_employee: i64 = 0;
-    for stat in stats {
-        if stat.notify_type == "employee" {
-            count_employee = stat.count;
-        } else {
-            count_others += stat.count;
-        }
-    }
-
-    let ctx = TemplateNotifyStatModal {
-        count_employee,
-        count_others,
-        has_add_access: acl.has_privilege("common", "notification", "add", None),
+pub async fn get_by_slug(
+    db: &DBConnection<'_>,
+    slug: &String,
+) -> Result<Option<PostDetail>, ApiError> {
+    let Some(row) = db
+        .query_opt("SELECT * FROM blog_post WHERE slug LIKE $1", &[&slug])
+        .await?
+    else {
+        return Err(ApiError::Error(format!("Slug {} is not available", slug)));
     };
 
-    let val = RestContentResponse {
-        success: true,
-        error: None,
-        content: Some(ctx.render_once().unwrap()),
-    };
-
-    let stream = stream::repeat_with(move || Event::default().json_data(val.clone()).unwrap())
-        .map(Ok)
-        .throttle(Duration::from_secs(1));
-
-    Sse::new(stream).keep_alive(
-        axum::response::sse::KeepAlive::new()
-            .interval(Duration::from_secs(1))
-            .text("keep-alive-text"),
-    )
+    Ok(Some(PostDetail {
+        id: row.get("id"),
+        title: row.get("title"),
+        content: row.get("content"),
+        summary: row.get("summary"),
+        image: row.get("image"),
+        created_by: row.get("created_by"),
+        slug: row.get("slug"),
+        published_on: row.get("published_on"),
+        seo_title: row.get("Seo_title"),
+        seo_keywords: row.get("seo_keywords"),
+        no_visits: row.get("no_visits"),
+        seo_description: row.get("seo_description"),
+        weightage: row.get("weightage")
+    }))
 }
 
 
 
------------------------------------------------------------------------------------------
+pub struct TagItem {
+    id: i64,
+    name: String,
+    no_post: i16
+}
 
+pub async fn get_list(db: &DBConnection<'_>,) -> Result<Vec<TagItem>, ApiError> {
+    let rows = db.query("SELECT * FROM blog_tags", &[]).await?;
 
+    let tags: Vec<TagItem> = rows.iter().map(|row| TagItem{
+        id: row.get("id"),
+        name: row.get("name"),
+        no_post: row.get("no_post"),
+    }).collect();
 
-axum-extra = "0.9.3"
-tokio-stream = "0.1"
-futures = "0.3.30"
+    Ok(tags)
+}
+
 ```
