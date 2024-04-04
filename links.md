@@ -13,9 +13,9 @@ multipart video -> https://www.youtube.com/watch?v=yDwuDZ9mCwo
 
 https://github.com/trasherr/Blogging-API
 
-</br>
+
 ### Sailfish template render issue &rarr; https://github.com/rust-sailfish/sailfish/pull/135
-</br>
+
 ### Sailfish chrono issue &rarr; https://github.com/rust-sailfish/sailfish/issues/128
 
 </br></br>
