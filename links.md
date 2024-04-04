@@ -15,7 +15,7 @@ https://github.com/trasherr/Blogging-API
 
 </br>
 ### Sailfish template render issue &rarr; https://github.com/rust-sailfish/sailfish/pull/135
-https://github.com/rust-sailfish/sailfish/issues/128
+### Sailfish chrono issue &rarr; https://github.com/rust-sailfish/sailfish/issues/128
 
 </br></br></br>
 
