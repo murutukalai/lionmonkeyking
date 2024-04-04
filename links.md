@@ -15,8 +15,9 @@ https://github.com/trasherr/Blogging-API
 
 </br>
 ### Sailfish template render issue &rarr; https://github.com/rust-sailfish/sailfish/pull/135
+https://github.com/rust-sailfish/sailfish/issues/128
 
-</br>
+</br></br></br>
 
 
 axum  tut -> https://youtube.com/playlist?list=PLGOIZXklfFkQMX9OJLqpU9MDkIU0ueunW&si=blOJUHUtDXEq21Ms </br>
