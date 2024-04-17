@@ -25,3 +25,6 @@ pub async fn handler_download() -> impl IntoResponse {
 
 Reffered from &rarr; https://github.com/tokio-rs/axum/discussions/608
 There is anoth simple way to impliment the content type to the header &rarr; https://www.shuttle.rs/launchpad/issues/2023-28-07-issue-05-Traits-Image-Processing
+
+
+https://gist.github.com/samuelsilvadev/5ed9f8b634dca67c8bd0912e3032d5f7
