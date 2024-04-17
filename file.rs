@@ -23,3 +23,4 @@ pub async fn handler_download() -> impl IntoResponse {
 
 
 // reffered from &rarr; https://github.com/tokio-rs/axum/discussions/608
+// there is anoth simple way to impliment the content type to the header
