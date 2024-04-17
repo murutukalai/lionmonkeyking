@@ -1,3 +1,4 @@
+```rust
 // no preview only download
 pub async fn handler_download() -> impl IntoResponse {
     let cur_dir = env::current_dir().unwrap();
@@ -20,7 +21,7 @@ pub async fn handler_download() -> impl IntoResponse {
 
     (headers, body)
 }
+```
 
-
-// reffered from &rarr; https://github.com/tokio-rs/axum/discussions/608
-// there is anoth simple way to impliment the content type to the header
+Reffered from &rarr; https://github.com/tokio-rs/axum/discussions/608
+There is anoth simple way to impliment the content type to the header &rarr; https://www.shuttle.rs/launchpad/issues/2023-28-07-issue-05-Traits-Image-Processing
