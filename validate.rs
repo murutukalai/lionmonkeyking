@@ -29,3 +29,8 @@ if let Err(err) = input.validate() {
 }
 
 // error msg : `Error: Minimum 10 digits, Invalid mobile number`
+
+// to get user agent
+
+// headers: HeaderMap,
+// headers.get("user-agent")
