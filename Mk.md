@@ -1,8 +1,283 @@
+### document_grid
+
+```html
+<div class="dtgrd">
+	<div class="dtgrd__innr">
+		<div class="dtgrd__cnt">
+			<div class="dtgrd__headr">
+				<div
+					ui-data-grid-col="id"
+					class="dtgrd__hcol dtgrd__hcol__w3<% if grid.sort_by == "id" { %> dtgrd__hcol__activ<% } %>"
+				>
+					<span class="dtgrd__title">ID</span>
+					<div class="dtgrd__hicn<% if !grid.sort_asc { %> dtgrd__hicn--desc<% } %>">
+						<button type="button" class="buttn__icn"><i class="ic ic-chevron-up"></i></button>
+                    	<button type="button" class="buttn__icn"><i class="ic ic-chevron-down"></i></button>
+					</div>
+				</div>
+				<div
+					ui-data-grid-col="title"
+					class="dtgrd__hcol dtgrd__col__auto<% if grid.sort_by == "title" { %> dtgrd__hcol__activ<% } %>"
+				>
+					<span class="dtgrd__title">Title</span>
+					<div class="dtgrd__hicn<% if !grid.sort_asc { %> dtgrd__hicn--desc<% } %>">
+						<button type="button" class="buttn__icn"><i class="ic ic-chevron-up"></i></button>
+                    	<button type="button" class="buttn__icn"><i class="ic ic-chevron-down"></i></button>
+					</div>
+				</div>
+                <div
+					ui-data-grid-col="type"
+					class="dtgrd__hcol dtgrd__hcol__w5<% if grid.sort_by == "type" { %> dtgrd__hcol__activ<% } %>"
+				>
+					<span class="dtgrd__title">Type</span>
+					<div class="dtgrd__hicn<% if !grid.sort_asc { %> dtgrd__hicn--desc<% } %>">
+						<button type="button" class="buttn__icn"><i class="ic ic-chevron-up"></i></button>
+                    	<button type="button" class="buttn__icn"><i class="ic ic-chevron-down"></i></button>
+					</div>
+				</div>
+                <div
+					ui-data-grid-col="created_on"
+					class="dtgrd__hcol dtgrd__hcol__w5<% if grid.sort_by == "created_on" { %> dtgrd__hcol__activ<% } %>"
+				>
+					<span class="dtgrd__title">Created On</span>
+					<div class="dtgrd__hicn<% if !grid.sort_asc { %> dtgrd__hicn--desc<% } %>">
+						<button type="button" class="buttn__icn"><i class="ic ic-chevron-up"></i></button>
+                    	<button type="button" class="buttn__icn"><i class="ic ic-chevron-down"></i></button>
+					</div>
+				</div>
+                <div
+					ui-data-grid-col="size"
+					class="dtgrd__hcol dtgrd__hcol__w5<% if grid.sort_by == "size" { %> dtgrd__hcol__activ<% } %>"
+				>
+					<span class="dtgrd__title">Size</span>
+					<div class="dtgrd__hicn<% if !grid.sort_asc { %> dtgrd__hicn--desc<% } %>">
+						<button type="button" class="buttn__icn"><i class="ic ic-chevron-up"></i></button>
+                    	<button type="button" class="buttn__icn"><i class="ic ic-chevron-down"></i></button>
+					</div>
+				</div>
+                <div
+					ui-data-grid-col="version"
+					class="dtgrd__hcol dtgrd__hcol__w5<% if grid.sort_by == "version" { %> dtgrd__hcol__activ<% } %>"
+				>
+					<span class="dtgrd__title">Version</span>
+					<div class="dtgrd__hicn<% if !grid.sort_asc { %> dtgrd__hicn--desc<% } %>">
+						<button type="button" class="buttn__icn"><i class="ic ic-chevron-up"></i></button>
+                    	<button type="button" class="buttn__icn"><i class="ic ic-chevron-down"></i></button>
+					</div>
+				</div>
+				<div class="dtgrd__hcol dtgrd__hcol__w5"></div>
+			</div>
+			<div class="dtgrd__rows">
+				<% for item in grid.items.iter() { %>
+					<div class="dtgrd__row">
+						<div class="dtgrd__col dtgrd__col__w3"><%= item.id %></div>
+						<div class="dtgrd__col dtgrd__col__auto"><%= item.title %></div>
+						<div class="dtgrd__col dtgrd__col__w5"><%= item.file_type %></div>
+                        <div class="dtgrd__col dtgrd__col__w5"><%= item.created_on %></div>
+                        <div class="dtgrd__col dtgrd__col__w5"><%= item.size %></div>
+                        <div class="dtgrd__col dtgrd__col__w5"><%= item.version %></div>
+						<div class="dtgrd__col dtgrd__col__w5 dtgrd__actn">
+							<% if has_edit_access { %>
+							<button 
+								class="buttn buttn--smaller"
+								type="button"
+								ui-action-modal="/api/company/document/<%= item.id %>"
+							>
+								<i class="ic ics-edit"></i>
+							</button>
+							<% } %>
+							<% if has_archive_access && item.active { %>
+                            <button 
+								class="buttn buttn--smaller"
+								type="button"
+								ui-action-modal="/api/company/document/<%= item.id %>/archive"
+							>
+								<i class="ic ic-archive-in"></i>
+							</button>
+							<% } %>
+							<% if has_delete_access { %>
+							<button 
+								class="buttn buttn--smaller"
+								type="button"
+								ui-action-get="/api/company/document/<%= item.id %>/delete"
+								ui-action-complete="grid-reload"
+								ui-action-grid="grid-document"
+								ui-action-confirm="Do you want to delete this holiday ?"
+							>
+								<i class="ic ic-trash"></i>
+							</button>
+							<% } %>
+							<% if has_download_access { %>
+							<button 
+								class="buttn buttn--smaller"
+								type="button"
+								ui-data-grid-redirect="/api/company/document/<%= item.id %>/download"
+								download
+							>
+								<i class="ic ic-download"></i>
+							</button>
+							<% } %>
+						</div>
+					</div>
+                <% } %>
+			</div>
+			<% if grid.items.is_empty() { %>
+				<% include!("../../includes/base/empty_data.stpl"); %>
+			<% } %>
+		</div>
+	</div>
+	<% include!("../../includes/base/datagird_pagination.stpl"); %>
+</div>
+```
+
+### model
+```html
+<div class="modal">
+	<div class="modal__cont">
+		<div class="modal__head">
+			<div class="modal__htit">
+				<% if item.id == 0 { %>Add Document<% } else { %>Edit Document<% } %>				
+			</div>
+			<button class="modal__hclose" ui-modal-action="close">
+				<i class="ic ic-x ic-sm"></i>
+			</button>
+		</div>
+		<form class="form"
+			method="post"
+			action="<%= action_url %>"
+			ui-form-complete="grid-reload,modal-close"
+			ui-form-grid="grid-document"
+            <% if item.id == 0 { %>
+                enctype="multipart/form-data"
+                ui-form-enctype="multipart/form-data"
+            <% } %>
+		>
+			<div class="modal__detl">
+				<div class="form__row">
+                    <div class="form__field">
+						<label for="file" class="form__label">File:</label>
+						<input type="file" name="file" />
+					</div>
+				</div>
+                <div class="form__row">
+                    <div class="form__field">
+						<label for="title" class="form__label">Title:</label>
+						<input class="form__input" ui-validation="required" maxlength="64" id="title" type="text" name="title" value="<%= item.title %>"/>
+					</div>
+				</div>
+				<div class="form__row">
+					<div class="form__field form__col1">
+						<label for="version" class="form__label">Version No:</label>
+						<input class="form__input" ui-validation="required" maxlength="5"
+                            id="version" type="number" name="version" value="<%= item.version %>" />
+					</div>
+                    <div class="form__field form__col1">
+                        <label for="tags" class="form__label">Tags:</label>
+                        <select
+							name="tags[]"
+							id="tags"
+							multiple
+							class="form__selct"
+							ui-form-select-type="tags"
+						>
+							<option value="" data-placeholder="true">Select Tags</option>
+							<% for tag in item.tags { %>
+                                <option value="<%= tag %>" selected="selected"><%= tag %></option>
+                            <% } %>
+						</select>
+                    </div>
+				</div>
+			</div>
+			<div class="modal__footr">
+				<button class="buttn" type="button" ui-modal-action="close">Cancel</button>
+				<button class="buttn buttn--primary" type="submit">Save</button>
+			</div>
+		</form>
+	</div>
+</div>
+
+```
+
+### document page
+
+```html
+<% include!("../../includes/page_header.stpl"); %>
+
+<main class="page__cont">
+	<div class="page__inner">
+		<div class="cthdr">
+			<div class="cthdr__contnt">
+				<div class="cthdr__info">
+					<div class="cthdr__title">Company - Document</div>
+				</div>
+                <% if has_add_access { %>
+				<div class="cthdr__actin">
+					<button class="buttn buttn--small" type="button" ui-action-modal="/api/company/document/create">Add Document</button>
+				</div>
+                <% } %>
+			</div>
+		</div>
+		<div class="page__inner__cntr">
+            <div class="contnr">
+				<div class="fltbar">
+                    <div class="fltbar__cnt">
+                        <div class="fltbar__main">
+                            <form
+                                id="form-document"
+                                action="/api/company/document"
+                                method="post"
+                            >
+                                <div class="fltbar__crts">
+                                    <div class="fltbar__searc">
+										<input
+											placeholder="Search..."
+											type="text"
+											class="fltbar__input fltbar__searc__clear"
+											name="keyword"
+											maxlength="64"
+											value=""
+										/>
+										<div class="fltbar__sercl fltbar__sercl--hidden">
+											<i class="ic ic-x ic-sm"></i>
+										</div>
+									</div>
+									<div class="fltbar__chkbx">
+										<input
+											type="checkbox"
+											class="fltbar__chkbx__activ"
+											id="show_all"
+											name="show_all"
+											value="true"
+										/>
+										<label for="show_all" class="fltbar__chkbx__lbl"
+											>Show All</label
+										>
+									</div>
+                                    <div class="fltbar__actns">
+                                        <button class="buttn buttn--small buttn--primary" type="submit">
+                                            Search
+                                        </button>
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+				<div id="grid-document" ui-data-grid="form-document"></div>
+			</div>
+		</div>
+    </div>
+</main>
+
+<% include!("../../includes/page_footer.stpl"); %>
+```
+
 ```rust
 // Rest - Company - Document
 
 use axum::{
     extract::{Multipart, Path},
+    response::IntoResponse,
     Extension, Json,
 };
 use backend_api::{
@@ -53,6 +328,7 @@ pub struct TemplateDocumentGrid {
     has_edit_access: bool,
     has_delete_access: bool,
     has_archive_access: bool,
+    has_download_access: bool,
     from_row: i64,
     to_row: i64,
 }
@@ -63,9 +339,9 @@ pub async fn handler_grid(
     Json(options): Json<RestDocumentGetListOptions>,
 ) -> RestResult<RestContentResponse> {
     let db = app_state.db.conn().await?;
+    let acl = user.get_acl();
 
-    user.acl
-        .check_privilege(&db, user.id, "company", "document", "view", None)
+    acl.check_privilege(&db, user.id, "company", "document", "view", None)
         .await?;
 
     let api_input = DocumentGetListOptions {
@@ -83,15 +359,10 @@ pub async fn handler_grid(
         grid,
         from_row,
         to_row,
-        has_edit_access: user
-            .get_acl()
-            .has_privilege("company", "document", "edit", None),
-        has_delete_access: user
-            .get_acl()
-            .has_privilege("company", "document", "delete", None),
-        has_archive_access: user
-            .get_acl()
-            .has_privilege("company", "document", "archive", None),
+        has_edit_access: acl.has_privilege("company", "document", "edit", None),
+        has_delete_access: acl.has_privilege("company", "document", "delete", None),
+        has_archive_access: acl.has_privilege("company", "document", "archive", None),
+        has_download_access: acl.has_privilege("company", "document", "download", None),
     };
 
     Ok(Json(RestContentResponse {
@@ -107,7 +378,7 @@ pub async fn handler_create(
     mut multipart: Multipart,
 ) -> RestResult<RestCommonResponse> {
     let db = app_state.db.conn().await?;
-    user.acl
+    user.get_acl()
         .check_privilege(&db, user.id, "company", "document", "add", None)
         .await?;
     let mut api_input = DocumentCreateInput {
@@ -175,6 +446,11 @@ pub async fn handler_create(
         }
     }
     api_input.tags = if tags.is_empty() { None } else { Some(tags) };
+    api_input.file_type = if let Some(file_exe) = api_input.file_path.split('.').last() {
+        file_exe.to_owned()
+    } else {
+        "".to_owned()
+    };
     let document_id = document::create(&db, &api_input).await?;
     Ok(Json(RestCommonResponse {
         success: document_id != 0,
@@ -265,6 +541,37 @@ pub async fn handler_get_edit(
     handler_get(&db, document_id).await
 }
 
+#[cfg(not(feature = "with-s3"))]
+pub async fn handler_delete(
+    user: RestAuthUser,
+    Extension(app_state): ExtAppState,
+    Path(document_id): Path<i64>,
+) -> RestResult<RestCommonResponse> {
+    let db = app_state.db.conn().await?;
+
+    user.acl
+        .check_privilege(&db, user.id, "company", "document", "delete", None)
+        .await?;
+
+    let file_path = document::get_by_id(&db, document_id).await?.file_path;
+    let cur_dir = env::current_dir().map_err(|err| RestError::Error(format!("{}", err)))?;
+    let Some(cur_dir) = cur_dir.to_str() else {
+        return Err(RestError::Error(
+            "Unable to get current directory".to_string(),
+        ));
+    };
+
+    let store = storage::DocumentStore::create(&format!("{}/public/documents", cur_dir))?;
+    store.delete(file_path.as_str()).await?;
+
+    let success = document::delete_by_id(&db, document_id).await?;
+    Ok(Json(RestCommonResponse {
+        success,
+        error: None,
+    }))
+}
+
+#[cfg(feature = "with-s3")]
 pub async fn handler_delete(
     user: RestAuthUser,
     Extension(app_state): ExtAppState,
@@ -278,25 +585,7 @@ pub async fn handler_delete(
 
     let file_path = document::get_by_id(&db, document_id).await?.file_path;
 
-    #[cfg(not(feature = "with-s3"))]
-    let cur_dir = env::current_dir().map_err(|err| RestError::Error(format!("{}", err)))?;
-
-    #[cfg(not(feature = "with-s3"))]
-    let Some(cur_dir) = cur_dir.to_str() else {
-        return Err(RestError::Error(
-            "Unable to get current directory".to_string(),
-        ));
-    };
-
-    #[cfg(not(feature = "with-s3"))]
-    let store = storage::DocumentStore::create(&format!("{}/public/documents", cur_dir))?;
-
-    #[cfg(not(feature = "with-s3"))]
-    store.delete(file_path.as_str()).await?;
-
-    #[cfg(feature = "with-s3")]
     let store = storage::DocumentStore::create("documents").unwrap();
-    #[cfg(feature = "with-s3")]
     store.delete(file_path.as_str()).await?;
 
     let success = document::delete_by_id(&db, document_id).await?;
@@ -324,262 +613,54 @@ pub async fn handler_archive(
         error: None,
     }))
 }
-```
 
-main grid
-```html
-<div class="dtgrd">
-	<div class="dtgrd__innr">
-		<div class="dtgrd__cnt">
-			<div class="dtgrd__headr">
-				<div
-					ui-data-grid-col="id"
-					class="dtgrd__hcol dtgrd__hcol__w3<% if grid.sort_by == "id" { %> dtgrd__hcol__activ<% } %>"
-				>
-					<span class="dtgrd__title">ID</span>
-					<div class="dtgrd__hicn<% if !grid.sort_asc { %> dtgrd__hicn--desc<% } %>">
-						<button type="button" class="buttn__icn"><i class="ic ic-chevron-up"></i></button>
-                    	<button type="button" class="buttn__icn"><i class="ic ic-chevron-down"></i></button>
-					</div>
-				</div>
-				<div
-					ui-data-grid-col="title"
-					class="dtgrd__hcol dtgrd__col__auto<% if grid.sort_by == "title" { %> dtgrd__hcol__activ<% } %>"
-				>
-					<span class="dtgrd__title">Title</span>
-					<div class="dtgrd__hicn<% if !grid.sort_asc { %> dtgrd__hicn--desc<% } %>">
-						<button type="button" class="buttn__icn"><i class="ic ic-chevron-up"></i></button>
-                    	<button type="button" class="buttn__icn"><i class="ic ic-chevron-down"></i></button>
-					</div>
-				</div>
-                <div
-					ui-data-grid-col="type"
-					class="dtgrd__hcol dtgrd__hcol__w5<% if grid.sort_by == "type" { %> dtgrd__hcol__activ<% } %>"
-				>
-					<span class="dtgrd__title">Type</span>
-					<div class="dtgrd__hicn<% if !grid.sort_asc { %> dtgrd__hicn--desc<% } %>">
-						<button type="button" class="buttn__icn"><i class="ic ic-chevron-up"></i></button>
-                    	<button type="button" class="buttn__icn"><i class="ic ic-chevron-down"></i></button>
-					</div>
-				</div>
-                <div
-					ui-data-grid-col="created_on"
-					class="dtgrd__hcol dtgrd__hcol__w5<% if grid.sort_by == "created_on" { %> dtgrd__hcol__activ<% } %>"
-				>
-					<span class="dtgrd__title">Created On</span>
-					<div class="dtgrd__hicn<% if !grid.sort_asc { %> dtgrd__hicn--desc<% } %>">
-						<button type="button" class="buttn__icn"><i class="ic ic-chevron-up"></i></button>
-                    	<button type="button" class="buttn__icn"><i class="ic ic-chevron-down"></i></button>
-					</div>
-				</div>
-                <div
-					ui-data-grid-col="size"
-					class="dtgrd__hcol dtgrd__hcol__w5<% if grid.sort_by == "size" { %> dtgrd__hcol__activ<% } %>"
-				>
-					<span class="dtgrd__title">Size</span>
-					<div class="dtgrd__hicn<% if !grid.sort_asc { %> dtgrd__hicn--desc<% } %>">
-						<button type="button" class="buttn__icn"><i class="ic ic-chevron-up"></i></button>
-                    	<button type="button" class="buttn__icn"><i class="ic ic-chevron-down"></i></button>
-					</div>
-				</div>
-                <div
-					ui-data-grid-col="version"
-					class="dtgrd__hcol dtgrd__hcol__w5<% if grid.sort_by == "version" { %> dtgrd__hcol__activ<% } %>"
-				>
-					<span class="dtgrd__title">Version</span>
-					<div class="dtgrd__hicn<% if !grid.sort_asc { %> dtgrd__hicn--desc<% } %>">
-						<button type="button" class="buttn__icn"><i class="ic ic-chevron-up"></i></button>
-                    	<button type="button" class="buttn__icn"><i class="ic ic-chevron-down"></i></button>
-					</div>
-				<div class="dtgrd__hcol dtgrd__hcol__w6"></div>
-			</div>
-			</div>
-			<div class="dtgrd__rows">
-				<% for item in grid.items.iter() { %>
-					<div class="dtgrd__row">
-						<div class="dtgrd__col dtgrd__col__w3"><%= item.id %></div>
-						<div class="dtgrd__col dtgrd__col__auto"><%= item.title %></div>
-						<div class="dtgrd__col dtgrd__col__w5"><%= item.file_type %></div>
-                        <div class="dtgrd__col dtgrd__col__w5"><%= item.created_on %></div>
-                        <div class="dtgrd__col dtgrd__col__w5"><%= item.size %></div>
-                        <div class="dtgrd__col dtgrd__col__w5"><%= item.version %></div>
-						<div class="dtgrd__col dtgrd__col__w6 dtgrd__actn">
-							<% if has_edit_access { %>
-							<button class="buttn buttn--smaller" type="button" ui-action-modal="/api/company/document/<%= item.id %>">
-								<i class="ic ics-edit"></i>
-							</button>
-							<% } %>
-							<% if has_archive_access && item.active { %>
-                            <button class="buttn buttn--smaller" type="button" ui-action-modal="/api/company/document/<%= item.id %>/archive">
-								<i class="ic ic-archive-in"></i>
-							</button>
-							<% } %>
-							<% if has_delete_access { %>
-								<button class="buttn buttn--smaller"
-								type="button"
-								ui-action-get="/api/company/document/<%= item.id %>/delete"
-								ui-action-complete="grid-reload"
-								ui-action-grid="grid-holiday"
-								ui-action-confirm="Do you want to delete this holiday ?"
-							>
-								<i class="ic ic-trash"></i>
-							</button>
-							<% } %>
-							<% if has_edit_access { %>
-								<button class="buttn buttn--smaller" type="button" ui-action-modal="/api/company/document/<%= item.id %>">
-								<i class="ic ic-cloud-download"></i>
-							</button>
-							<% } %>
-						</div>
-					</div>
-                <% } %>
-			</div>
-			<% if grid.items.is_empty() { %>
-				<% include!("../../includes/base/empty_data.stpl"); %>
-			<% } %>
-		</div>
-	</div>
-	<% include!("../../includes/base/datagird_pagination.stpl"); %>
-</div>
-```
+#[cfg(not(feature = "with-s3"))]
+pub async fn handler_download(
+    user: RestAuthUser,
+    Extension(app_state): ExtAppState,
+    Path(document_id): Path<i64>,
+) -> Result<impl IntoResponse, RestError> {
+    let db = app_state.db.conn().await?;
 
-model
-```html
-<div class="modal">
-	<div class="modal__cont">
-		<div class="modal__head">
-			<div class="modal__htit">
-				<% if item.id == 0 { %>Add Document<% } else { %>Edit Document<% } %>				
-			</div>
-			<button class="modal__hclose" ui-modal-action="close">
-				<i class="ic ic-x ic-sm"></i>
-			</button>
-		</div>
-		<form class="form"
-			method="post"
-			action="<%= action_url %>"
-			ui-form-complete="grid-reload,modal-close"
-			ui-form-grid="grid-document"
-            <% if item.id == 0 { %>
-                enctype="multipart/form-data"
-                ui-form-enctype="multipart/form-data"
-            <% } %>
-		>
-			<div class="modal__detl">
-				<div class="form__row">
-                    <div class="form__field">
-						<label for="file" class="form__label">File:</label>
-						<input type="file" name="file" />
-					</div>
-				</div>
-                <div class="form__row">
-                    <div class="form__field">
-						<label for="title" class="form__label">Title:</label>
-						<input class="form__input" ui-validation="required" maxlength="64" id="title" type="text" name="title" value="<%= item.title %>"/>
-					</div>
-				</div>
-				<div class="form__row">
-					<div class="form__field form__col1">
-						<label for="version" class="form__label">Version No:</label>
-						<input class="form__input" ui-validation="required" maxlength="5"
-                            id="version" type="number" name="version" value="<%= item.version %>" />
-					</div>
-                    <div class="form__field form__col1">
-                        <label for="tags" class="form__label">Tags:</label>
-                        <select
-							name="tags[]"
-							id="tags"
-							multiple
-							class="form__selct"
-							ui-form-select-type="tags"
-						>
-							<option value="" data-placeholder="true">Select Tags</option>
-							<% for tag in item.tags { %>
-                                <option value="<%= tag %>" selected="selected"><%= tag %></option>
-                            <% } %>
-						</select>
-                    </div>
-				</div>
-			</div>
-			<div class="modal__footr">
-				<button class="buttn" type="button" ui-modal-action="close">Cancel</button>
-				<button class="buttn buttn--primary" type="submit">Save</button>
-			</div>
-		</form>
-	</div>
-</div>
-```
-page
-```html
-<% include!("../../includes/page_header.stpl"); %>
+    user.acl
+        .check_privilege(&db, user.id, "company", "document", "download", None)
+        .await?;
 
-<main class="page__cont">
-	<div class="page__inner">
-		<div class="cthdr">
-			<div class="cthdr__contnt">
-				<div class="cthdr__info">
-					<div class="cthdr__title">Company - Document</div>
-				</div>
-                <% if has_add_access { %>
-				<div class="cthdr__actin">
-					<button class="buttn buttn--small" type="button" ui-action-modal="/api/company/document/create">Add Document</button>
-				</div>
-                <% } %>
-			</div>
-		</div>
-		<div class="page__inner__cntr">
-            <div class="contnr">
-				<div class="fltbar">
-                    <div class="fltbar__cnt">
-                        <div class="fltbar__main">
-                            <form
-                                id="form-document"
-                                action="/api/company/document"
-                                method="post"
-                            >
-                                <div class="fltbar__crts">
-                                    <div class="fltbar__searc">
-										<input
-											placeholder="Search..."
-											type="text"
-											class="fltbar__input fltbar__searc__clear"
-											name="keyword"
-											maxlength="64"
-											value=""
-										/>
-										<div class="fltbar__sercl fltbar__sercl--hidden">
-											<i class="ic ic-x ic-sm"></i>
-										</div>
-									</div>
-									<div class="fltbar__chkbx">
-										<input
-											type="checkbox"
-											class="fltbar__chkbx__activ"
-											id="show_all"
-											name="show_all"
-											value="true"
-										/>
-										<label for="show_all" class="fltbar__chkbx__lbl"
-											>Show All</label
-										>
-									</div>
-                                    <div class="fltbar__actns">
-                                        <button class="buttn buttn--small buttn--primary" type="submit">
-                                            Search
-                                        </button>
-                                    </div>
-                                </div>
-                            </form>
-                        </div>
-                    </div>
-                </div>
-				<div id="grid-document" ui-data-grid="form-document"></div>
-			</div>
-		</div>
-    </div>
-</main>
+    let document = document::get_by_id(&db, document_id).await?;
+    let file_path = document.file_path;
+    let file_name = document.title;
 
-<% include!("../../includes/page_footer.stpl"); %>
+    let cur_dir = env::current_dir().map_err(|err| RestError::Error(format!("{}", err)))?;
+    let Some(cur_dir) = cur_dir.to_str() else {
+        return Err(RestError::Error(
+            "Unable to get current directory".to_string(),
+        ));
+    };
+
+    let store = storage::DocumentStore::create(&format!("{}/public/documents", cur_dir))?;
+    Ok(store.download(&file_path, &file_name).await?)
+}
+
+#[cfg(feature = "with-s3")]
+pub async fn handler_download(
+    user: RestAuthUser,
+    Extension(app_state): ExtAppState,
+    Path(document_id): Path<i64>,
+) -> Result<impl IntoResponse, RestError> {
+    let db = app_state.db.conn().await?;
+
+    user.acl
+        .check_privilege(&db, user.id, "company", "document", "download", None)
+        .await?;
+
+    let document = document::get_by_id(&db, document_id).await?;
+    let file_path = document.file_path;
+    let file_name = document.title;
+
+    let document = document::get_by_id(&db, document_id).await?;
+    let store = storage::DocumentStore::create("crypton").unwrap();
+    Ok(store.download(&file_path, &file_name).await?)
+}
 
 ```
 
@@ -936,4 +1017,214 @@ pub async fn update_archive(db: &DBConnection<'_>, document_id: i64) -> Result<b
 
     Ok(value != 0)
 }
+
+```
+
+```rust
+// Libs - Storage
+
+use axum::{extract::multipart::Field, http::header, response::IntoResponse};
+use futures::stream::StreamExt;
+use tokio::io::AsyncWriteExt;
+
+#[cfg(not(feature = "with-s3"))]
+use std::path;
+
+#[cfg(not(feature = "with-s3"))]
+use object_store::{self, local::LocalFileSystem, path::Path, ObjectStore};
+
+#[cfg(feature = "with-s3")]
+use object_store::{
+    self,
+    aws::{AmazonS3, AmazonS3Builder},
+    path::Path,
+    ObjectStore,
+};
+
+#[derive(thiserror::Error, Debug)]
+pub enum DocumentStoreError {
+    // Common Error
+    #[error("Error: {0}")]
+    Error(String),
+
+    // Object Store Error
+    #[error("Parse error: {0}")]
+    ObjectError(#[from] object_store::Error),
+}
+
+#[cfg(feature = "with-s3")]
+pub struct DocumentStore {
+    store: AmazonS3,
+    _store_type: String,
+    _initial_path: String,
+}
+
+#[cfg(not(feature = "with-s3"))]
+pub struct DocumentStore {
+    store: LocalFileSystem,
+    _store_type: String,
+    _initial_path: String,
+}
+
+#[derive(Debug, Clone)]
+pub struct DocumentInfo {
+    pub file_path: String,
+    pub file_name: String,
+    pub size: String,
+}
+
+impl DocumentStore {
+    #[cfg(feature = "with-s3")]
+    pub fn create(initial_path: &str) -> Result<DocumentStore, DocumentStoreError> {
+        Ok(DocumentStore {
+            store: AmazonS3Builder::from_env()
+                .with_bucket_name(initial_path)
+                .build()?,
+            _store_type: "S3".to_string(),
+            _initial_path: initial_path.to_string(),
+        })
+    }
+
+    #[cfg(not(feature = "with-s3"))]
+    pub fn create(initial_path: &str) -> Result<DocumentStore, DocumentStoreError> {
+        let path = path::Path::new(initial_path);
+        Ok(DocumentStore {
+            store: LocalFileSystem::new_with_prefix(path)?,
+            _store_type: "Local Store".to_string(),
+            _initial_path: initial_path.to_string(),
+        })
+    }
+
+    pub async fn get_list(&self, path: &str) -> Result<Vec<DocumentInfo>, DocumentStoreError> {
+        let prefix = Path::from(path);
+        let mut list_stream = self.store.list(Some(&prefix));
+        let mut items: Vec<DocumentInfo> = vec![];
+        while let Some(meta) = list_stream.next().await.transpose()? {
+            let file_name = if let Some(name) = meta.location.filename() {
+                name.to_string()
+            } else {
+                String::new()
+            };
+
+            items.push(DocumentInfo {
+                file_path: meta.location.to_string(),
+                file_name,
+                size: bytesize::ByteSize::to_string_as(
+                    &bytesize::ByteSize::b(meta.size as u64),
+                    true,
+                )
+                .to_string(),
+            });
+        }
+        Ok(items)
+    }
+
+    pub async fn create_documents(
+        &self,
+        field: &mut Field<'_>,
+        path: &str,
+    ) -> Result<Vec<DocumentInfo>, DocumentStoreError> {
+        let mut doc_info: Vec<DocumentInfo> = vec![];
+
+        let Some(file_typ) = field.content_type().map(ToString::to_string) else {
+            return Err(DocumentStoreError::Error(
+                "Unsupported content type".to_string(),
+            ));
+        };
+
+        let file_exe = match file_typ.as_str() {
+            "image/png" => "png",
+            "image/jpeg" => "jpg",
+            "application/pdf" => "pdf",
+            _ => {
+                return Err(DocumentStoreError::Error(
+                    "Unsupported media type".to_string(),
+                ));
+            }
+        };
+
+        let mut data_len = 0;
+        let doc_id = uuid::Uuid::new_v4();
+        let file_path = Path::from(format!("{}/{}.{}", path, doc_id, file_exe));
+        let (_id, mut writer) = self.store.put_multipart(&file_path).await?;
+        loop {
+            let Some(data) = field
+                .chunk()
+                .await
+                .map_err(|err| DocumentStoreError::Error(err.to_string()))?
+            else {
+                break;
+            };
+
+            data_len += data.len() as u64;
+            writer
+                .write_all(&data)
+                .await
+                .map_err(|err| DocumentStoreError::Error(err.to_string()))?;
+            writer
+                .flush()
+                .await
+                .map_err(|err| DocumentStoreError::Error(err.to_string()))?;
+        }
+        doc_info.push(DocumentInfo {
+            file_path: path.to_string(),
+            file_name: format!("{}.{}", doc_id, file_exe),
+            size: bytesize::ByteSize::to_string_as(&bytesize::ByteSize::b(data_len), true)
+                .to_string(),
+        });
+        writer
+            .shutdown()
+            .await
+            .map_err(|err| DocumentStoreError::Error(err.to_string()))?;
+
+        Ok(doc_info)
+    }
+
+    pub async fn get_content(&self, path: &str) -> Result<bytes::Bytes, DocumentStoreError> {
+        let path = Path::from(path);
+        let result = self.store.get(&path).await?;
+        Ok(result.bytes().await?)
+    }
+
+    pub async fn delete(&self, path: &str) -> Result<(), DocumentStoreError> {
+        let path = Path::from(path);
+        Ok(self.store.delete(&path).await?)
+    }
+
+    pub async fn download(
+        &self,
+        path: &str,
+        file_name: &str,
+    ) -> Result<impl IntoResponse, DocumentStoreError> {
+        let file_path = Path::from(path);
+        let result = self.store.get(&file_path).await?;
+
+        let Some(file_exe) = path.split('.').last() else {
+            return Err(DocumentStoreError::Error(
+                "Unable to fetch file extension".to_string(),
+            ));
+        };
+
+        let content_type = match file_exe {
+            "png" => "image/png",
+            "jpg" => "image/jpeg",
+            "pdf" => "application/pdf",
+            _ => "",
+        };
+
+        let headers = [
+            (
+                header::CONTENT_TYPE,
+                format!("{}; charset=utf-8", content_type).to_owned(),
+            ),
+            (
+                header::CONTENT_DISPOSITION,
+                format!("inline; filename=\"{}.{}\"", file_name, file_exe).to_owned(),
+            ),
+        ];
+
+        Ok((headers, result.bytes().await?))
+    }
+}
+
 ```
