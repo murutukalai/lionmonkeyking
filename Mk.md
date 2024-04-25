@@ -1,5 +1,5 @@
 ### rest
-```
+```rust
 // Rest - Company - Document
 
 use axum::{
@@ -445,7 +445,7 @@ pub async fn handler_download(
 ```
 
 ### libs/storage/content_type.rs
-```
+```rust
 // Storage - content-type
 
 pub fn to_type(file_name: &str) -> String {
@@ -722,7 +722,7 @@ pub fn to_type(file_name: &str) -> String {
 ```
 
 ### lib/storage
-```
+```rust
 // Libs - Storage
 
 use axum::{extract::multipart::Field, http::header, response::IntoResponse};
