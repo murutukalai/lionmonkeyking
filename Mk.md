@@ -338,7 +338,7 @@ mod test {
 
 
 ### db table 
-```rust
+```sql
 CREATE TABLE IF NOT EXISTS test_db (
     id BIGSERIAL PRIMARY KEY NOT NULL,
     created_on TIMESTAMP DEFAULT now(),
