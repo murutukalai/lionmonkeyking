@@ -335,3 +335,20 @@ mod test {
     }
 }
 ```
+
+
+### db table 
+```rust
+CREATE TABLE IF NOT EXISTS test_db (
+    id BIGSERIAL PRIMARY KEY NOT NULL,
+    created_on TIMESTAMP DEFAULT now(),
+    modified_on TIMESTAMP DEFAULT now(),
+    string VARCHAR(64),
+    date Date,
+    number INT,
+    small_number SMALLINT,
+    big_number BIGINT,
+    float DOUBLE PRECISION,
+    is_active BOOLEAN
+);
+```
