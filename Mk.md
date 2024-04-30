@@ -1,4 +1,4 @@
-
+```rust
 pub async fn create_row(
     db: &DBConnection<'_>,
     table_name: &str,
@@ -63,3 +63,4 @@ pub async fn create_row(
         };
     }
 }
+```
