@@ -16,3 +16,8 @@ let current_date = chrono::offset::Local::now().date_naive();
     .await
     .map_err(Error::new)?;
 ```
+
+for leave sorting 
+```rust
+where_clauses.push(format!("DATE(start_date_time) >= ${}", params.len() + 1));
+```
