@@ -21,3 +21,41 @@ for leave sorting
 ```rust
 where_clauses.push(format!("DATE(start_date_time) >= ${}", params.len() + 1));
 ```
+document preview 
+```rust
+pub async fn view(
+    &self,
+    path: &str,
+    file_name: &str,
+) -> Result<impl IntoResponse, DocumentStoreError> {
+    let file_path = Path::from(path);
+    let result = self.store.get(&file_path).await?;
+
+    let Some(file_exe) = path.split('.').last() else {
+        return Err(DocumentStoreError::Error(
+            "Unable to fetch file extension".to_string(),
+        ));
+    };
+    let file_exe = file_exe.to_lowercase();
+
+    let content_type = match mime_guess::from_ext(&file_exe).first() {
+        Some(mime) => mime.to_string(),
+        None => "application/octet-stream".to_string(),
+    };
+
+    tracing::info!("Content-Type: {}", content_type);
+
+    let headers = [
+        (
+            header::CONTENT_TYPE,
+            format!("{}; charset=utf-8", content_type),
+        ),
+        (
+            header::CONTENT_DISPOSITION,
+            format!("inline; filename=\"{}.{}\"", file_name, file_exe),
+        ),
+    ];
+
+    Ok((headers, result.bytes().await?))
+}
+```
