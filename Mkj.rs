@@ -82,3 +82,20 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     Ok(())
 }
+
+use regex::Regex;
+
+fn main() {
+    let password = "YourPassword123!";
+
+    if validate_password(password) {
+        println!("Password is valid.");
+    } else {
+        println!("Password is invalid.");
+    }
+}
+
+fn validate_password(password: &str) -> bool {
+    let re = Regex::new(r"^(?=.*\d)(?=.*[!@#$%^&*(),.?\":{}|<>]).*$").unwrap();
+    re.is_match(password)
+}
