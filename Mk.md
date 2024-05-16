@@ -1,5 +1,5 @@
 execute
-```
+```rust
 use tokio_postgres::{Config, NoTls};
 
 async fn execute_sql_file(sql_file_path: &str) -> Result<(), tokio_postgres::Error> {
