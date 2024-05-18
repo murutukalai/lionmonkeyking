@@ -1,4 +1,4 @@
-auth 
+auth api demo ureq
 ```rust
 // Api-demo
 
@@ -306,7 +306,7 @@ pub async fn auth_weborder_ditto(
             Ok(DittoAuthResponse {
                 authentication: true,
                 expiration_seconds,
-                user_id: Some(access_id.to_string()),
+                user_id,
                 permission: Some(Permission {
                     read: IDittoPermission {
                         everything: false,
