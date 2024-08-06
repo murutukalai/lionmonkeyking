@@ -622,3 +622,104 @@ This corrected setup should resolve the type mismatch error and correctly route 
 
 
 ---------
+
+The error you're encountering suggests that the GraphQL object macro is trying to use the `GraphqlDb` type as an input argument in the resolver method, which requires the `FromInputValue` trait to be implemented. However, `GraphqlDb` is meant to be the context for the GraphQL schema, not an input value for the resolver method. Let's correct the setup and ensure that the context and input types are correctly defined.
+
+### Corrections and Explanations
+
+1. **Context Usage**: In Juniper, the context is a special object that is passed along with every resolver call. It is not supposed to be used as an input argument directly in resolver functions. Instead, it is accessed through the `Context` trait.
+
+2. **Input Arguments**: Input arguments for resolver methods should be types that implement the `FromInputValue` trait, which is automatically derived for types like basic scalars, GraphQL input objects, and enums.
+
+3. **Correct Usage of Context in Resolvers**: The context should be accessed by using the context parameter provided by Juniper, not passed as an argument.
+
+### Corrected Example
+
+Here's a corrected example of how to define the `EmployeeQuery` with proper usage of the context and input arguments:
+
+```rust
+use juniper::{graphql_object, FieldResult};
+use std::sync::Arc;
+
+#[derive(Debug)]
+pub struct EmployeeQuery;
+
+// Define your database pool type, e.g., using sqlx or diesel
+pub type DBPool = sqlx::PgPool; // or whatever type you use
+
+// Define the GraphqlDb context
+#[derive(Debug, Default)]
+pub struct GraphqlDb {
+    pub pool: Option<Arc<DBPool>>,
+}
+
+// Implement the Context trait for GraphqlDb
+impl juniper::Context for GraphqlDb {}
+
+// Define your input types and GraphQL object types
+#[derive(juniper::GraphQLInputObject)]
+pub struct EmployeeGetListOptions {
+    pub limit: i32,
+}
+
+#[derive(juniper::GraphQLObject)]
+pub struct EmployeeItem {
+    pub id: i32,
+    pub name: String,
+}
+
+#[graphql_object(context = GraphqlDb)]
+impl EmployeeQuery {
+    async fn get_list(
+        &self,
+        context: &GraphqlDb,
+        options: EmployeeGetListOptions,
+    ) -> FieldResult<Vec<EmployeeItem>> {
+        let pool = context.pool.as_ref().unwrap();
+
+        // Example database query logic
+        let employees = sqlx::query_as!(
+            EmployeeItem,
+            "SELECT id, name FROM employees LIMIT $1",
+            options.limit
+        )
+        .fetch_all(pool)
+        .await?;
+
+        Ok(employees)
+    }
+}
+
+// Example schema definition
+use juniper::EmptyMutation;
+
+pub type Schema = juniper::RootNode<'static, EmployeeQuery, EmptyMutation<GraphqlDb>>;
+
+#[tokio::main]
+async fn main() {
+    // Example initialization logic
+    let db_url = "postgres://user:password@localhost/database";
+    let pool = sqlx::PgPool::connect(db_url).await.unwrap();
+    let context = GraphqlDb {
+        pool: Some(Arc::new(pool)),
+    };
+
+    let schema = Schema::new(EmployeeQuery, EmptyMutation::<GraphqlDb>::new());
+
+    // Start your server, setup routes, etc.
+}
+```
+
+### Key Changes and Considerations
+
+1. **Context Parameter**: The context parameter is accessed as `context: &GraphqlDb` in the resolver method, not as an input argument. Juniper automatically injects the context, and it should not be listed among the method arguments as a separate parameter.
+
+2. **Input Objects**: The `EmployeeGetListOptions` struct is used as an input object, which must implement `FromInputValue`. Juniper automatically derives this trait for types annotated with `#[derive(juniper::GraphQLInputObject)]`.
+
+3. **Database Access**: In the resolver method, use the context to access the database pool or other shared resources.
+
+4. **Error Handling**: The `FieldResult` type is used to handle possible errors in the resolver.
+
+5. **Initialization**: The context and schema are initialized in the main function, and the server setup should follow.
+
+This corrected setup ensures that the context (`GraphqlDb`) is used correctly in the resolver and input arguments are appropriately defined, fixing the error related to `FromInputValue` not being implemented.
