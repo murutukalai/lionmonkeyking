@@ -315,3 +315,176 @@ In summary, there are numerous ways to structure a GraphQL server with Juniper a
 ----------------
 
 
+To integrate SQLx with Juniper and Axum in Rust, you'll need to manage an SQLx database connection pool and pass it through the GraphQL context. Here's a step-by-step guide on how to set this up:
+
+### 1. **Add Dependencies**
+
+First, include the necessary dependencies in your `Cargo.toml` file:
+
+```toml
+[dependencies]
+axum = "0.6"
+juniper = "0.15"
+tokio = { version = "1", features = ["full"] }
+sqlx = { version = "0.6", features = ["postgres", "runtime-tokio-native-tls", "macros"] }
+dotenv = "0.15"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+```
+
+- **axum**: Web framework for building async HTTP services.
+- **juniper**: GraphQL library for Rust.
+- **tokio**: Asynchronous runtime.
+- **sqlx**: Async SQL toolkit, here configured for PostgreSQL.
+- **dotenv**: For loading environment variables from a `.env` file.
+
+### 2. **Load Configuration**
+
+Use `dotenv` to load configuration from a `.env` file:
+
+```rust
+use dotenv::dotenv;
+use std::env;
+
+fn load_config() -> String {
+    dotenv().ok();
+    env::var("DATABASE_URL").expect("DATABASE_URL must be set")
+}
+```
+
+### 3. **Setup SQLx and GraphQL Context**
+
+Create a GraphQL context that includes the SQLx connection pool.
+
+```rust
+use sqlx::{PgPool, Pool, Postgres};
+use std::sync::Arc;
+
+pub struct Context {
+    pub db_pool: Arc<PgPool>,
+}
+
+impl juniper::Context for Context {}
+```
+
+### 4. **Define the GraphQL Schema**
+
+Define your GraphQL schema using Juniper.
+
+```rust
+use juniper::{EmptyMutation, RootNode};
+
+pub struct QueryRoot;
+
+#[juniper::object(Context = Context)]
+impl QueryRoot {
+    async fn api_version() -> &str {
+        "1.0"
+    }
+
+    async fn get_user(context: &Context, id: i32) -> juniper::FieldResult<User> {
+        let user = sqlx::query_as!(User, "SELECT id, name FROM users WHERE id = $1", id)
+            .fetch_one(&*context.db_pool)
+            .await?;
+        Ok(user)
+    }
+}
+
+pub type Schema = RootNode<'static, QueryRoot, EmptyMutation<Context>>;
+
+#[derive(Debug, juniper::GraphQLObject)]
+#[graphql(description = "A user")]
+pub struct User {
+    pub id: i32,
+    pub name: String,
+}
+```
+
+### 5. **GraphQL Handler**
+
+Create a handler function to handle GraphQL requests.
+
+```rust
+use axum::{
+    extract::{Extension, Json},
+    response::IntoResponse,
+    routing::post,
+    Router,
+};
+use juniper::http::{GraphQLRequest, GraphQLResponse};
+use std::sync::Arc;
+
+async fn graphql_handler(
+    schema: Extension<Arc<Schema>>,
+    context: Extension<Arc<Context>>,
+    Json(request): Json<GraphQLRequest>,
+) -> impl IntoResponse {
+    let response = request.execute(&schema, &context).await;
+    Json(GraphQLResponse::from(response))
+}
+```
+
+### 6. **Main Function**
+
+Set up the database pool, the schema, and the Axum server.
+
+```rust
+use axum::{Router, Extension};
+use std::sync::Arc;
+
+#[tokio::main]
+async fn main() {
+    // Load configuration
+    let database_url = load_config();
+
+    // Setup the database pool
+    let db_pool = PgPool::connect(&database_url).await.expect("Failed to create pool");
+    let context = Arc::new(Context {
+        db_pool: Arc::new(db_pool),
+    });
+
+    // Define the Juniper schema
+    let schema = Arc::new(Schema::new(QueryRoot, EmptyMutation::<Context>::new()));
+
+    // Define the Axum app
+    let app = Router::new()
+        .route("/graphql", post(graphql_handler))
+        .layer(Extension(schema))
+        .layer(Extension(context));
+
+    // Run the server
+    axum::Server::bind(&"0.0.0.0:4000".parse().unwrap())
+        .serve(app.into_make_service())
+        .await
+        .unwrap();
+}
+```
+
+### Explanation
+
+1. **Dependencies**: The `sqlx` crate handles PostgreSQL connections, while `axum` provides the web server functionality. `dotenv` loads environment variables.
+
+2. **Database Configuration**: The `load_config` function loads the database URL from the environment.
+
+3. **GraphQL Context**: The `Context` struct holds the database pool, which is passed to each resolver.
+
+4. **Schema Definition**: The `QueryRoot` struct defines the GraphQL query root. The `get_user` function demonstrates a query using SQLx.
+
+5. **GraphQL Handler**: The `graphql_handler` function handles GraphQL requests by executing them with the provided schema and context.
+
+6. **Main Function**: This sets up the database pool, schema, and starts the Axum server on port 4000.
+
+### Notes
+
+- **Error Handling**: The example provided has basic error handling. In a production environment, you'll need more robust error handling and logging.
+
+- **Schema and Context Extensions**: You can extend the schema and context with additional functionality as needed.
+
+- **Security**: Ensure to handle security concerns, such as SQL injection prevention, authentication, and authorization.
+
+This setup provides a basic but complete integration of SQLx, Juniper, and Axum, suitable for building a GraphQL API backed by a PostgreSQL database.
+
+
++--------
+
+
