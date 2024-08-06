@@ -488,3 +488,137 @@ This setup provides a basic but complete integration of SQLx, Juniper, and Axum,
 +--------
 
 
+The error you're encountering suggests a type mismatch issue. It seems that the Axum routing setup and the handler function type expectations are not aligning. Let's correct the setup by ensuring that the handler function matches the expected signature and the way the route is defined is consistent with Axum's expected types.
+
+To fix the error, we'll use the correct method to set up the route and ensure that the handler function signature matches Axum's requirements for handling GraphQL requests. Here's how you can do it:
+
+### Corrected Setup
+
+1. **Use the Correct Method for Route Definition**: The `on` method in Axum requires a handler function with a specific signature. Ensure that the handler correctly matches the expected input and output types.
+
+2. **Properly Define the GraphQL Handler**: The handler should accept Axum's request extracts and return a type that implements `IntoResponse`.
+
+Here's an example:
+
+```rust
+use axum::{
+    extract::{Extension, Json},
+    response::IntoResponse,
+    routing::{get, post},
+    Router,
+    http::Method,
+};
+use juniper::{EmptySubscription, RootNode};
+use std::sync::Arc;
+use sqlx::PgPool;
+use tower_http::cors::{Any, CorsLayer};
+
+// Define your GraphQL schema
+pub struct EmployeeQuery;
+pub struct EmployeeMutation;
+
+#[juniper::graphql_object]
+impl EmployeeQuery {
+    async fn api_version() -> &str {
+        "1.0"
+    }
+
+    // Example query
+    async fn employee(context: &Context, id: i32) -> juniper::FieldResult<Employee> {
+        // Your database query logic here
+        Ok(Employee { id, name: "John Doe".into() })
+    }
+}
+
+#[juniper::graphql_object]
+impl EmployeeMutation {
+    async fn create_employee(context: &Context, name: String) -> juniper::FieldResult<Employee> {
+        // Your database mutation logic here
+        Ok(Employee { id: 1, name })
+    }
+}
+
+#[derive(juniper::GraphQLObject)]
+pub struct Employee {
+    id: i32,
+    name: String,
+}
+
+pub struct Context {
+    pub db_pool: Arc<PgPool>,
+}
+
+impl juniper::Context for Context {}
+
+pub type Schema = RootNode<'static, EmployeeQuery, EmployeeMutation, EmptySubscription<Context>>;
+
+async fn graphql_handler(
+    schema: Extension<Arc<Schema>>,
+    context: Extension<Arc<Context>>,
+    req: Json<juniper::http::GraphQLRequest>,
+) -> impl IntoResponse {
+    let res = req.execute_async(&schema, &context).await;
+    Json(res)
+}
+
+async fn graphiql() -> impl IntoResponse {
+    axum::response::Html(juniper::http::graphiql::graphiql_source("/graphql", None))
+}
+
+#[tokio::main]
+async fn main() {
+    let db_url = "postgres://user:password@localhost/database";
+    let db_pool = PgPool::connect(db_url).await.unwrap();
+    let context = Arc::new(Context {
+        db_pool: Arc::new(db_pool),
+    });
+
+    let schema = Arc::new(Schema::new(
+        EmployeeQuery,
+        EmployeeMutation,
+        EmptySubscription::new(),
+    ));
+
+    let app = Router::new()
+        .route("/graphql", post(graphql_handler).get(graphiql))
+        .layer(
+            Extension(schema)
+                .layer(Extension(context))
+                .layer(CorsLayer::new().allow_origin(Any).allow_methods(Any)),
+        );
+
+    axum::Server::bind(&"0.0.0.0:4000".parse().unwrap())
+        .serve(app.into_make_service())
+        .await
+        .unwrap();
+}
+```
+
+### Key Corrections and Details
+
+1. **Route Definition**:
+   - Use `route("/graphql", post(graphql_handler).get(graphiql))` instead of `on(MethodFilter::GET.or(MethodFilter::POST), graphql::<Arc<Schema>>,)`.
+   - This approach uses Axum's routing DSL correctly, allowing for GET and POST methods on the `/graphql` route.
+
+2. **Handler Function**:
+   - The `graphql_handler` function is defined to accept `Json<juniper::http::GraphQLRequest>` as a request body for POST requests and executes the query against the provided schema and context.
+
+3. **GraphiQL Handler**:
+   - The `graphiql` function serves the GraphiQL interface for testing and exploring the API.
+
+4. **Server and Middleware**:
+   - The `CorsLayer` is set up to handle CORS concerns, allowing requests from any origin and method, which might need further refinement for production.
+
+5. **Context and Schema**:
+   - The `Context` struct and `Schema` type alias are correctly set up to provide the necessary context for executing queries.
+
+### Additional Notes
+
+- Ensure that you have the necessary database and table setup corresponding to your GraphQL schema.
+- In production, always handle CORS, authentication, and error management properly.
+
+This corrected setup should resolve the type mismatch error and correctly route GraphQL requests using Axum and Juniper in a Rust application.
+
+
+
+---------
