@@ -173,3 +173,243 @@ In this setup:
 - **Rocket**: The Rocket application initializes the database connection, passes it to the GraphQL context, and sets up routes for GraphQL.
 
 This approach ensures that your database connection is efficiently managed and accessible within your GraphQL resolvers.
+
+
+
+To extend the example to include a database context, we'll use **PostgreSQL** with the **SQLx** crate for asynchronous database interactions. This example will cover setting up the database, defining the necessary data models, and integrating the database with the GraphQL API using Juniper and Axum.
+
+### 1. Setting Up the Project
+
+Update the `Cargo.toml` to include the necessary dependencies:
+
+```toml
+[dependencies]
+axum = "0.6"
+juniper = "0.15"
+tokio = { version = "1", features = ["full"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+tower = "0.4"
+sqlx = { version = "0.6", features = ["postgres", "runtime-tokio-native-tls"] }
+dotenv = "0.15"
+```
+
+Make sure you have a PostgreSQL database running and create a `.env` file in the root of your project with the following content:
+
+```
+DATABASE_URL=postgres://user:password@localhost/db_name
+```
+
+Replace `user`, `password`, and `db_name` with your PostgreSQL credentials and database name.
+
+### 2. Defining Data Models
+
+Create a file named `models.rs`:
+
+```rust
+use serde::{Deserialize, Serialize};
+use sqlx::FromRow;
+
+#[derive(FromRow, Serialize, Deserialize, Clone)]
+pub struct User {
+    pub id: i32,
+    pub name: String,
+}
+```
+
+### 3. Database Interactions
+
+Create a file named `db.rs` for database operations:
+
+```rust
+use sqlx::{PgPool, Result};
+use crate::models::User;
+
+pub async fn get_users(pool: &PgPool) -> Result<Vec<User>> {
+    let users = sqlx::query_as!(User, "SELECT id, name FROM users")
+        .fetch_all(pool)
+        .await?;
+    Ok(users)
+}
+
+pub async fn get_user_by_id(pool: &PgPool, user_id: i32) -> Result<Option<User>> {
+    let user = sqlx::query_as!(User, "SELECT id, name FROM users WHERE id = $1", user_id)
+        .fetch_optional(pool)
+        .await?;
+    Ok(user)
+}
+
+pub async fn create_user(pool: &PgPool, name: String) -> Result<User> {
+    let user = sqlx::query_as!(User, "INSERT INTO users (name) VALUES ($1) RETURNING id, name", name)
+        .fetch_one(pool)
+        .await?;
+    Ok(user)
+}
+```
+
+### 4. GraphQL Schema with Database Context
+
+Update the `schema.rs` file to integrate with the database:
+
+```rust
+use juniper::{graphql_object, FieldResult, RootNode};
+use crate::{db, models::User};
+use sqlx::PgPool;
+use std::sync::Arc;
+
+pub struct QueryRoot;
+
+pub struct MutationRoot;
+
+#[graphql_object(context = Arc<PgPool>)]
+impl QueryRoot {
+    async fn api_version() -> &str {
+        "1.0"
+    }
+
+    async fn users(context: &Arc<PgPool>) -> FieldResult<Vec<User>> {
+        let users = db::get_users(context).await?;
+        Ok(users)
+    }
+
+    async fn user(context: &Arc<PgPool>, id: i32) -> FieldResult<User> {
+        let user = db::get_user_by_id(context, id).await?;
+        match user {
+            Some(u) => Ok(u),
+            None => Err("User not found".into()),
+        }
+    }
+}
+
+#[graphql_object(context = Arc<PgPool>)]
+impl MutationRoot {
+    async fn create_user(context: &Arc<PgPool>, name: String) -> FieldResult<User> {
+        let user = db::create_user(context, name).await?;
+        Ok(user)
+    }
+}
+
+pub type Schema = RootNode<'static, QueryRoot, MutationRoot>;
+
+pub fn create_schema() -> Schema {
+    Schema::new(QueryRoot {}, MutationRoot {})
+}
+```
+
+### 5. Setting Up Axum with Database Pool
+
+Update the `main.rs` file to include the database pool:
+
+```rust
+use axum::{
+    extract::{Extension, Json},
+    response::Html,
+    routing::{get, post},
+    Router,
+};
+use dotenv::dotenv;
+use sqlx::PgPool;
+use std::sync::Arc;
+use tokio::sync::Mutex;
+use tower::ServiceBuilder;
+
+mod db;
+mod models;
+mod schema;
+
+use schema::{create_schema, Schema};
+
+async fn graphql_handler(
+    schema: Extension<Arc<Schema>>,
+    pool: Extension<Arc<PgPool>>,
+    request: Json<juniper::http::GraphQLRequest>,
+) -> Json<juniper::http::GraphQLResponse> {
+    let ctx = pool.clone();
+    let response = request.execute_with_context(&schema, &ctx).await;
+    Json(response)
+}
+
+async fn graphiql() -> Html<String> {
+    Html(juniper::http::graphiql::graphiql_source("/graphql", None))
+}
+
+#[tokio::main]
+async fn main() {
+    dotenv().ok();
+
+    let database_url = std::env::var("DATABASE_URL").expect("DATABASE_URL must be set");
+    let pool = PgPool::connect(&database_url).await.unwrap();
+    let schema = Arc::new(create_schema());
+
+    let app = Router::new()
+        .route("/graphql", post(graphql_handler))
+        .route("/graphiql", get(graphiql))
+        .layer(ServiceBuilder::new().layer(Extension(Arc::new(pool))))
+        .layer(ServiceBuilder::new().layer(Extension(schema)));
+
+    println!("GraphiQL IDE: http://localhost:3000/graphiql");
+
+    axum::Server::bind(&"0.0.0.0:3000".parse().unwrap())
+        .serve(app.into_make_service())
+        .await
+        .unwrap();
+}
+```
+
+### 6. Setting Up the Database
+
+Create a table for the `User` model in your PostgreSQL database:
+
+```sql
+CREATE TABLE users (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(100) NOT NULL
+);
+```
+
+### 7. Running the Application
+
+To run the application, use the following command:
+
+```sh
+cargo run
+```
+
+### 8. Query and Mutation Examples
+
+Use the GraphiQL interface at `http://localhost:3000/graphiql` to run queries and mutations.
+
+#### Query Example
+
+```graphql
+{
+  apiVersion
+  users {
+    id
+    name
+  }
+  user(id: 1) {
+    id
+    name
+  }
+}
+```
+
+#### Mutation Example
+
+```graphql
+mutation {
+  createUser(name: "Charlie") {
+    id
+    name
+  }
+}
+```
+
+### Explanation
+
+- **Database Connection**: We use SQLx to manage the database connection pool and perform asynchronous operations.
+- **Context in GraphQL**: The database pool is passed as a context to GraphQL resolvers, allowing them to access the database.
+- **Data Models**: The `User` struct is used to represent users in both the database and GraphQL schema.
+
+This example demonstrates a complete setup of a GraphQL API using Juniper, Axum, and PostgreSQL, including both query and mutation operations with database interaction.
