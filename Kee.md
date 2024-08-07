@@ -501,3 +501,164 @@ EXECUTE FUNCTION notify_example_channel();
 ```
 
 By following these steps and using the provided Rust code with `sqlx`, you can create an efficient and safe system for handling PostgreSQL notifications in your Rust web application using `axum`.
+___________
+In `sqlx` version 0.8.0, the notification API was changed. Let's update the example to be compatible with the latest version of `sqlx`.
+
+### Updated Rust Code with `sqlx` 0.8.0
+
+First, make sure your `Cargo.toml` specifies the correct version of `sqlx`:
+
+```toml
+[dependencies]
+axum = "0.6"
+tokio = { version = "1", features = ["full"] }
+sqlx = { version = "0.8", features = ["postgres", "runtime-tokio-rustls"] }
+futures = "0.3"
+```
+
+### Complete Rust Example
+
+Here’s how you can listen for notifications with `sqlx` 0.8.0:
+
+```rust
+use axum::{
+    routing::get,
+    response::Html,
+    Router,
+};
+use tokio::sync::broadcast;
+use sqlx::{PgPool, Postgres, Executor};
+use futures::stream::StreamExt;
+use std::sync::Arc;
+use tokio::sync::Mutex;
+
+#[tokio::main]
+async fn main() -> Result<(), sqlx::Error> {
+    // Set up the PostgreSQL connection pool
+    let pool = PgPool::connect("postgres://postgres:yourpassword@localhost/yourdb").await?;
+
+    // Create the broadcast channel for sending notifications
+    let (tx, _) = broadcast::channel(100);
+    let tx_clone = tx.clone();
+
+    // Spawn a task to listen for notifications
+    let pool_clone = pool.clone();
+    tokio::spawn(async move {
+        listen_for_notifications(pool_clone, tx_clone).await.unwrap();
+    });
+
+    // Set up the web server
+    let app = Router::new().route("/", get(|| async { Html("Listening for notifications...") }));
+
+    axum::Server::bind(&"0.0.0.0:3000".parse().unwrap())
+        .serve(app.into_make_service())
+        .await
+        .unwrap();
+
+    Ok(())
+}
+
+async fn listen_for_notifications(pool: PgPool, tx: broadcast::Sender<String>) -> Result<(), sqlx::Error> {
+    let mut conn = pool.acquire().await?;
+    sqlx::query("LISTEN example_channel").execute(&mut conn).await?;
+
+    let mut notification_stream = conn.listen("example_channel").await?;
+
+    while let Some(notification) = notification_stream.next().await {
+        let notification = notification?;
+        let payload = notification.payload().to_string();
+        println!("Received notification: {:?}", payload);
+
+        // Send the notification to the broadcast channel
+        let _ = tx.send(payload);
+    }
+
+    Ok(())
+}
+```
+
+### Explanation
+
+#### Listening for Notifications
+
+```rust
+async fn listen_for_notifications(pool: PgPool, tx: broadcast::Sender<String>) -> Result<(), sqlx::Error> {
+    let mut conn = pool.acquire().await?;
+    sqlx::query("LISTEN example_channel").execute(&mut conn).await?;
+
+    let mut notification_stream = conn.listen("example_channel").await?;
+
+    while let Some(notification) = notification_stream.next().await {
+        let notification = notification?;
+        let payload = notification.payload().to_string();
+        println!("Received notification: {:?}", payload);
+
+        // Send the notification to the broadcast channel
+        let _ = tx.send(payload);
+    }
+
+    Ok(())
+}
+```
+
+- **Acquire Connection**:
+  ```rust
+  let mut conn = pool.acquire().await?;
+  ```
+  - Gets a connection from the pool.
+- **Listen Query**:
+  ```rust
+  sqlx::query("LISTEN example_channel").execute(&mut conn).await?;
+  ```
+  - Subscribes to notifications on `example_channel`.
+- **Receiving Notifications**:
+  ```rust
+  let mut notification_stream = conn.listen("example_channel").await?;
+  while let Some(notification) = notification_stream.next().await {
+      let notification = notification?;
+      let payload = notification.payload().to_string();
+      println!("Received notification: {:?}", payload);
+
+      // Send the notification to the broadcast channel
+      let _ = tx.send(payload);
+  }
+  ```
+  - Listens for notifications and sends them through the broadcast channel.
+
+### Testing the Setup
+
+After running the Rust application, you can test the notification system by inserting a row into the `example_table`:
+
+```sql
+INSERT INTO example_table (message) VALUES ('Hello, sqlx!');
+```
+
+This will trigger the notification and your Rust application should receive and print the message.
+
+### Complete SQL Script
+
+To set up the PostgreSQL table, function, and trigger:
+
+```sql
+-- Step 1: Create the table
+CREATE TABLE example_table (
+    id SERIAL PRIMARY KEY,
+    message TEXT NOT NULL
+);
+
+-- Step 2: Create the function for the trigger
+CREATE OR REPLACE FUNCTION notify_example_channel() RETURNS trigger AS $$
+BEGIN
+    PERFORM pg_notify('example_channel', NEW.message);
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Step 3: Create the trigger
+CREATE TRIGGER example_table_notify_trigger
+AFTER INSERT ON example_table
+FOR EACH ROW
+EXECUTE FUNCTION notify_example_channel();
+```
+
+By following these steps and using the provided Rust code with `sqlx` 0.8.0, you can create an efficient and safe system for handling PostgreSQL notifications in your Rust web application using `axum`.
