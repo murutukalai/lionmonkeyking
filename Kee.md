@@ -228,3 +228,103 @@ axum::Server::bind(&"0.0.0.0:3000".parse().unwrap())
 - **Effect**: Any clients listening on `example_channel` receive the notification with the payload `'payload'`.
 
 In summary, the example demonstrates how to set up a Rust web server using `axum` that listens for PostgreSQL notifications using the `LISTEN` and `NOTIFY` commands. When a notification is received, it is printed to the console and sent through a broadcast channel, which can be used to notify web clients in a more comprehensive application.
+
+
+
+-------
+
+To use the `LISTEN` and `NOTIFY` commands effectively, you typically need a PostgreSQL table that triggers notifications upon certain actions (e.g., inserts, updates, deletes). Here's a step-by-step guide on how to create a table and set up a trigger that notifies a channel.
+
+### 1. Create the Table
+
+First, create a simple table. For this example, let's create a table named `example_table`.
+
+```sql
+CREATE TABLE example_table (
+    id SERIAL PRIMARY KEY,
+    message TEXT NOT NULL
+);
+```
+
+- **id**: A serial primary key that auto-increments.
+- **message**: A text column to store some messages.
+
+### 2. Create a Function for the Trigger
+
+Next, create a function that will be called by the trigger. This function will send a notification to the `example_channel`.
+
+```sql
+CREATE OR REPLACE FUNCTION notify_example_channel() RETURNS trigger AS $$
+BEGIN
+    PERFORM pg_notify('example_channel', NEW.message);
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+```
+
+- **Function Name**: `notify_example_channel`
+- **Purpose**: Sends a notification to `example_channel` with the `message` from the new row (`NEW.message`).
+
+### 3. Create the Trigger
+
+Finally, create a trigger that calls the `notify_example_channel` function after an insert operation on `example_table`.
+
+```sql
+CREATE TRIGGER example_table_notify_trigger
+AFTER INSERT ON example_table
+FOR EACH ROW
+EXECUTE FUNCTION notify_example_channel();
+```
+
+- **Trigger Name**: `example_table_notify_trigger`
+- **Timing**: `AFTER INSERT` (runs after an insert operation)
+- **Table**: `example_table`
+- **Trigger Action**: Calls `notify_example_channel()` for each row inserted.
+
+### Putting It All Together
+
+Here is the complete SQL script to create the table, function, and trigger:
+
+```sql
+-- Step 1: Create the table
+CREATE TABLE example_table (
+    id SERIAL PRIMARY KEY,
+    message TEXT NOT NULL
+);
+
+-- Step 2: Create the function for the trigger
+CREATE OR REPLACE FUNCTION notify_example_channel() RETURNS trigger AS $$
+BEGIN
+    PERFORM pg_notify('example_channel', NEW.message);
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Step 3: Create the trigger
+CREATE TRIGGER example_table_notify_trigger
+AFTER INSERT ON example_table
+FOR EACH ROW
+EXECUTE FUNCTION notify_example_channel();
+```
+
+### Testing the Setup
+
+To test the setup, insert a row into `example_table` and observe the notification:
+
+```sql
+INSERT INTO example_table (message) VALUES ('Hello, world!');
+```
+
+This insert operation will trigger the `example_table_notify_trigger`, which will call the `notify_example_channel` function, sending a notification with the message `'Hello, world!'` to `example_channel`.
+
+In your Rust application, the `LISTEN` command subscribes to `example_channel`, so when the above insert is executed, your application will receive the notification.
+
+### Full Rust Example
+
+Combining this with the Rust code from before, you get a complete solution where inserting a row into the PostgreSQL table triggers a notification that your Rust server can handle.
+
+1. **Create the table, function, and trigger in PostgreSQL using the provided SQL script.**
+2. **Run the Rust application to listen for notifications.**
+3. **Insert data into `example_table` to trigger notifications.**
+
+By following these steps, you set up an end-to-end system where database changes in PostgreSQL can trigger real-time notifications handled by a Rust web server using `axum`.
