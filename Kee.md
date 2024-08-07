@@ -1031,3 +1031,37 @@ CREATE TABLE employees (
 ### Conclusion
 
 This example extends the previous setup to include an Employee entity with queries, mutations, and a placeholder for subscriptions. You can further expand the functionality by implementing full GraphQL subscriptions using WebSockets and adding more complex business logic as needed.
+_______________
+
+#[graphql_subscription(context = GraphqlDb)]
+impl EmployeeSubscription {
+    pub async fn employee(
+        #[graphql(context)] db: &GraphqlDb,
+        // mutation_type: Option<MutationType>,
+    ) -> Pin<Box<dyn Stream<Item = Result<Option<EmployeeItem>, FieldError>> + Send>> {
+        let pool = db.pool.clone().unwrap().as_ref().clone();
+        let mut listener = PgListener::connect_with(&pool).await.unwrap();
+        listener.listen("employee_channel").await.unwrap();
+        let stream = async_stream::stream! {
+            loop {
+                if let Some(pg_notification) = listener.recv().await.unwrap() {
+                    let payload = pg_notification.payload();
+                    let payloads: Vec<&str> = if payload.is_empty() {
+                        vec![]
+                    } else {
+                        payload.split(", ").collect()
+                    };
+                    let id = if payloads.is_empty() {
+                        0
+                    } else if let Ok(val) = payloads[0].parse::<i32>() {
+                        val
+                    } else {
+                        0
+                    };
+                    yield get_by_id(&pool, id).await;
+                }
+            }
+        };
+        Box::pin(stream)
+    }
+}
