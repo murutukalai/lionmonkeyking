@@ -104,4 +104,127 @@ This example demonstrates the integration of PostgreSQL `LISTEN` and `NOTIFY` wi
 
 _________
 
+Sure, I'll walk you through each part of the example in more detail, focusing on the queries and their interactions with PostgreSQL.
 
+### 1. Establishing the PostgreSQL Connection
+
+```rust
+let (client, connection) =
+    tokio_postgres::connect("host=localhost user=postgres password=yourpassword dbname=yourdb", NoTls)
+        .await
+        .expect("Failed to connect to the database");
+```
+
+- **Purpose**: Establishes a connection to the PostgreSQL database.
+- **Query**: The connection string specifies the host, user, password, and database name.
+- **Result**: Returns a `client` and a `connection` object. The `client` is used for executing queries, and the `connection` manages the actual connection.
+
+### 2. Managing the Connection
+
+```rust
+tokio::spawn(async move {
+    if let Err(e) = connection.await {
+        eprintln!("Connection error: {}", e);
+    }
+});
+```
+
+- **Purpose**: Spawns a task to handle the connection. This is necessary because the connection needs to be continuously managed in the background.
+- **Query**: No direct SQL query here, just managing the connection lifecycle.
+- **Result**: Ensures the connection stays alive and handles any errors that occur.
+
+### 3. Setting Up the Listener for Notifications
+
+```rust
+async fn listen_for_notifications(client: Arc<Mutex<tokio_postgres::Client>>, tx: broadcast::Sender<String>) -> Result<(), Error> {
+    let mut client = client.lock().await;
+
+    // Listen for notifications on the 'example_channel'
+    client.batch_execute("LISTEN example_channel").await?;
+
+    let mut notifications = client.notifications();
+
+    // Loop to receive notifications
+    while let Some(notification) = notifications.next().await {
+        let notification = notification?;
+        let payload = notification.payload().to_string();
+        println!("Received notification: {:?}", payload);
+
+        // Send the notification to the broadcast channel
+        let _ = tx.send(payload);
+    }
+
+    Ok(())
+}
+```
+
+#### Step-by-Step:
+
+1. **Locking the Client**:
+   ```rust
+   let mut client = client.lock().await;
+   ```
+   - **Purpose**: Since `client` is shared across tasks, we use a `Mutex` to ensure safe concurrent access.
+   - **Query**: No SQL query here.
+
+2. **Listen Query**:
+   ```rust
+   client.batch_execute("LISTEN example_channel").await?;
+   ```
+   - **Purpose**: Tells PostgreSQL to start listening for notifications on the `example_channel`.
+   - **Query**: 
+     ```sql
+     LISTEN example_channel;
+     ```
+   - **Result**: The client is now subscribed to notifications on `example_channel`.
+
+3. **Receiving Notifications**:
+   ```rust
+   let mut notifications = client.notifications();
+   while let Some(notification) = notifications.next().await {
+       let notification = notification?;
+       let payload = notification.payload().to_string();
+       println!("Received notification: {:?}", payload);
+
+       // Send the notification to the broadcast channel
+       let _ = tx.send(payload);
+   }
+   ```
+   - **Purpose**: Creates a loop to listen for notifications from PostgreSQL.
+   - **Query**: Receives notifications without an explicit SQL query. The notifications are sent by PostgreSQL when something calls `NOTIFY example_channel, 'payload';`.
+   - **Result**: Each received notification is printed and sent through a broadcast channel.
+
+### 4. Web Server Setup with Axum
+
+```rust
+let app = Router::new().route("/", get(|| async { Html("Listening for notifications...") }));
+axum::Server::bind(&"0.0.0.0:3000".parse().unwrap())
+    .serve(app.into_make_service())
+    .await
+    .unwrap();
+```
+
+- **Purpose**: Sets up a simple web server that listens on port 3000.
+- **Query**: No SQL queries here.
+- **Result**: The server responds with a static message indicating that it is listening for notifications.
+
+### Detailed Queries and Their Functions
+
+#### `LISTEN example_channel`
+
+- **Purpose**: Subscribes the client to notifications on `example_channel`.
+- **Usage**:
+  ```rust
+  client.batch_execute("LISTEN example_channel").await?;
+  ```
+
+#### `NOTIFY example_channel, 'payload'`
+
+- **Purpose**: Sends a notification to `example_channel` with the payload `'payload'`.
+- **Example Usage in SQL**:
+  ```sql
+  NOTIFY example_channel, 'payload';
+  ```
+- **Effect**: Any clients listening on `example_channel` receive the notification with the payload `'payload'`.
+
+In summary, the example demonstrates how to set up a Rust web server using `axum` that listens for PostgreSQL notifications using the `LISTEN` and `NOTIFY` commands. When a notification is received, it is printed to the console and sent through a broadcast channel, which can be used to notify web clients in a more comprehensive application.
