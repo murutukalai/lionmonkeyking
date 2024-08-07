@@ -662,3 +662,372 @@ EXECUTE FUNCTION notify_example_channel();
 ```
 
 By following these steps and using the provided Rust code with `sqlx` 0.8.0, you can create an efficient and safe system for handling PostgreSQL notifications in your Rust web application using `axum`.
+_____________
+Let's expand on the previous example to include an Employee entity with queries, mutations, and subscriptions. We'll set up the database schema, define the GraphQL schema, and integrate everything with Axum.
+
+### Project Structure
+
+Here's a suggested directory structure for the project:
+
+```
+graphql_example/
+├── Cargo.toml
+├── src/
+│   ├── db.rs
+│   ├── main.rs
+│   ├── schema.rs
+│   ├── subscription.rs
+│   └── employee.rs
+```
+
+### 1. **Cargo.toml**
+
+Ensure the necessary dependencies are included:
+
+```toml
+[package]
+name = "graphql_example"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+axum = "0.6"
+juniper = "0.15"
+juniper_axum = "0.6"
+sqlx = { version = "0.7", features = ["sqlite", "runtime-tokio-native-tls", "macros"] }
+tokio = { version = "1", features = ["full"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+tower = "0.4"
+tower-http = { version = "0.4", features = ["trace"] }
+async-std = "1.10"
+futures = "0.3"
+```
+
+### 2. **Database Setup (db.rs)**
+
+Add Employee model and relevant methods.
+
+```rust
+// src/db.rs
+use sqlx::{SqlitePool, FromRow, Error};
+use sqlx::sqlite::SqliteQueryAs;
+
+#[derive(FromRow, Debug)]
+pub struct Post {
+    pub id: i64,
+    pub title: String,
+    pub content: String,
+}
+
+#[derive(FromRow, Debug)]
+pub struct Employee {
+    pub id: i64,
+    pub name: String,
+    pub position: String,
+}
+
+pub struct DB {
+    pub pool: SqlitePool,
+}
+
+impl DB {
+    pub async fn new(database_url: &str) -> Result<Self, Error> {
+        let pool = SqlitePool::connect(database_url).await?;
+        Ok(DB { pool })
+    }
+
+    pub async fn create_post(&self, title: &str, content: &str) -> Result<Post, Error> {
+        let post = sqlx::query_as::<_, Post>(
+            "INSERT INTO posts (title, content) VALUES (?, ?) RETURNING id, title, content"
+        )
+        .bind(title)
+        .bind(content)
+        .fetch_one(&self.pool)
+        .await?;
+        Ok(post)
+    }
+
+    pub async fn get_post(&self, id: i64) -> Result<Post, Error> {
+        let post = sqlx::query_as::<_, Post>("SELECT * FROM posts WHERE id = ?")
+            .bind(id)
+            .fetch_one(&self.pool)
+            .await?;
+        Ok(post)
+    }
+
+    pub async fn update_post(&self, id: i64, title: &str, content: &str) -> Result<Post, Error> {
+        let post = sqlx::query_as::<_, Post>(
+            "UPDATE posts SET title = ?, content = ? WHERE id = ? RETURNING id, title, content"
+        )
+        .bind(title)
+        .bind(content)
+        .bind(id)
+        .fetch_one(&self.pool)
+        .await?;
+        Ok(post)
+    }
+
+    // Employee-related methods
+    pub async fn create_employee(&self, name: &str, position: &str) -> Result<Employee, Error> {
+        let employee = sqlx::query_as::<_, Employee>(
+            "INSERT INTO employees (name, position) VALUES (?, ?) RETURNING id, name, position"
+        )
+        .bind(name)
+        .bind(position)
+        .fetch_one(&self.pool)
+        .await?;
+        Ok(employee)
+    }
+
+    pub async fn get_employee(&self, id: i64) -> Result<Employee, Error> {
+        let employee = sqlx::query_as::<_, Employee>("SELECT * FROM employees WHERE id = ?")
+            .bind(id)
+            .fetch_one(&self.pool)
+            .await?;
+        Ok(employee)
+    }
+
+    pub async fn update_employee(&self, id: i64, name: &str, position: &str) -> Result<Employee, Error> {
+        let employee = sqlx::query_as::<_, Employee>(
+            "UPDATE employees SET name = ?, position = ? WHERE id = ? RETURNING id, name, position"
+        )
+        .bind(name)
+        .bind(position)
+        .bind(id)
+        .fetch_one(&self.pool)
+        .await?;
+        Ok(employee)
+    }
+}
+```
+
+### 3. **GraphQL Schema (schema.rs)**
+
+Define the GraphQL schema for Employee entity.
+
+```rust
+// src/schema.rs
+use juniper::{graphql_object, RootNode, FieldResult};
+use crate::db::{DB, Post, Employee};
+
+pub struct Context {
+    pub db: DB,
+}
+
+impl juniper::Context for Context {}
+
+pub struct Query;
+
+#[graphql_object(context = Context)]
+impl Query {
+    async fn post(context: &Context, id: i64) -> FieldResult<Post> {
+        let post = context.db.get_post(id).await?;
+        Ok(post)
+    }
+
+    async fn employee(context: &Context, id: i64) -> FieldResult<Employee> {
+        let employee = context.db.get_employee(id).await?;
+        Ok(employee)
+    }
+}
+
+pub struct Mutation;
+
+#[graphql_object(context = Context)]
+impl Mutation {
+    async fn create_post(context: &Context, title: String, content: String) -> FieldResult<Post> {
+        let post = context.db.create_post(&title, &content).await?;
+        Ok(post)
+    }
+
+    async fn update_post(context: &Context, id: i64, title: String, content: String) -> FieldResult<Post> {
+        let post = context.db.update_post(id, &title, &content).await?;
+        Ok(post)
+    }
+
+    async fn create_employee(context: &Context, name: String, position: String) -> FieldResult<Employee> {
+        let employee = context.db.create_employee(&name, &position).await?;
+        Ok(employee)
+    }
+
+    async fn update_employee(context: &Context, id: i64, name: String, position: String) -> FieldResult<Employee> {
+        let employee = context.db.update_employee(id, &name, &position).await?;
+        Ok(employee)
+    }
+}
+
+// Define the Subscription type
+pub struct Subscription;
+
+#[graphql_subscription(context = Context)]
+impl Subscription {
+    // Example of subscription that will need implementation
+    async fn employees() -> impl juniper::futures::Stream<Item = Employee> {
+        // Placeholder implementation
+        juniper::futures::stream::empty()
+    }
+}
+
+pub type Schema = RootNode<'static, Query, Mutation, Subscription>;
+
+pub fn create_schema() -> Schema {
+    Schema::new(Query, Mutation, Subscription)
+}
+```
+
+### 4. **Axum Server Setup (main.rs)**
+
+Set up the Axum server and define routes.
+
+```rust
+// src/main.rs
+use axum::{routing::get, Router, Extension};
+use std::sync::Arc;
+use std::net::SocketAddr;
+use crate::db::DB;
+use crate::schema::{create_schema, Schema, Context};
+use tower::ServiceBuilder;
+use tower_http::trace::TraceLayer;
+use juniper::http::GraphQLRequest;
+use juniper_axum::{graphiql_handler, graphql_handler};
+
+mod db;
+mod schema;
+
+#[tokio::main]
+async fn main() {
+    // Set up the database connection
+    let db = DB::new("sqlite://:memory:").await.expect("Failed to create DB");
+    
+    // Create the GraphQL schema
+    let schema = Arc::new(create_schema());
+
+    // Build the Axum app
+    let app = Router::new()
+        .route("/graphql", graphql_handler(schema.clone()))
+        .route("/graphiql", graphiql_handler("/graphql", None))
+        .layer(Extension(Context { db }))
+        .layer(ServiceBuilder::new().layer(TraceLayer::new_for_http()));
+
+    // Define the server address
+    let addr = SocketAddr::from(([127, 0, 0, 1], 3000));
+    println!("GraphiQL IDE: http://{}", addr);
+
+    // Run the server
+    axum::Server::bind(&addr)
+        .serve(app.into_make_service())
+        .await
+        .unwrap();
+}
+```
+
+### 5. **GraphQL Subscriptions (subscription.rs)**
+
+For simplicity, this example provides a placeholder. Implementing a full subscription requires setting up WebSockets.
+
+```rust
+// src/subscription.rs
+use futures::stream::Stream;
+use std::pin::Pin;
+
+#[derive(Clone)]
+pub struct Subscription;
+
+impl juniper::GraphQLType for Subscription {
+    type Context = ();
+    type TypeInfo = ();
+
+    fn name(_: &Self::TypeInfo) -> Option<&str> {
+        Some("Subscription")
+    }
+}
+
+impl juniper::GraphQLSubscriptionType for Subscription {
+    type Context = ();
+
+    fn resolve_field(
+        &self,
+        info: &Self::TypeInfo,
+        field: &str,
+        args: &juniper::Arguments<Self::Context>,
+        executor: &juniper::Executor<Self::Context>,
+    ) -> juniper::FieldResult<Pin<Box<dyn Stream<Item = juniper::Value<Self::Context>> + Send>>> {
+        unimplemented!("Subscription not yet implemented")
+    }
+}
+```
+
+### SQL Schema
+
+Ensure your SQLite database has the necessary schema:
+
+```sql
+CREATE TABLE posts (
+    id INTEGER PRIMARY KEY AUTOINCREMENT
+
+,
+    title TEXT NOT NULL,
+    content TEXT NOT NULL
+);
+
+CREATE TABLE employees (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    position TEXT NOT NULL
+);
+```
+
+### Running the Server
+
+1. **Start the Database**: Ensure the SQLite database is available and the necessary tables are created.
+
+2. **Run the Server**:
+
+   ```sh
+   cargo run
+   ```
+
+3. **Access GraphiQL**: The GraphiQL interface can be accessed at [http://localhost:3000/graphiql](http://localhost:3000/graphiql). You can run queries and mutations there.
+
+### Example Queries
+
+- **Create an Employee**:
+
+  ```graphql
+  mutation {
+    createEmployee(name: "John Doe", position: "Software Engineer") {
+      id
+      name
+      position
+    }
+  }
+  ```
+
+- **Get an Employee**:
+
+  ```graphql
+  query {
+    employee(id: 1) {
+      id
+      name
+      position
+    }
+  }
+  ```
+
+- **Update an Employee**:
+
+  ```graphql
+  mutation {
+    updateEmployee(id: 1, name: "Jane Doe", position: "Senior Software Engineer") {
+      id
+      name
+      position
+    }
+  }
+  ```
+
+### Conclusion
+
+This example extends the previous setup to include an Employee entity with queries, mutations, and a placeholder for subscriptions. You can further expand the functionality by implementing full GraphQL subscriptions using WebSockets and adding more complex business logic as needed.
